@@ -1,0 +1,9 @@
+# OILTRACE backend — Python 3.11+
+# Pinned to lower bounds known to work; the pipeline uses only stable APIs.
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.27,<1.0
+pydantic>=2.6,<3.0
+numpy>=1.26
+opencv-python-headless>=4.9
+rasterio>=1.3
+shapely>=2.0

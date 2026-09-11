@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/out/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Env / editor / OS
+.env
+.env.local
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# NOTE: backend/sample_data/ is intentionally NOT ignored — the generated
+# fixture is committed so the prototype runs offline out of the box.
