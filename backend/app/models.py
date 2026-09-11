@@ -134,11 +134,19 @@ class ScoredCandidate(BaseModel):
     heading_deg: float
     has_ais_gap: bool
     ais_gap_note: Optional[str] = None
+    # True when this candidate is one of a set the system refuses to rank apart
+    # (top-two gap below CANDIDATE_SEPARATION_MIN). Never affects the score.
+    joint: bool = False
 
 
 class ExplainOutput(BaseModel):
     scene_id: str
     ranked_candidates: list[ScoredCandidate]
+    # Set to the exact flag string when the top two candidates are too close to
+    # separate; None otherwise. joint_candidates lists their MMSIs.
+    separation_flag: Optional[str] = None
+    joint_candidates: list[str] = Field(default_factory=list)
+    score_gap: Optional[float] = None
     evidence_id: str
     disclaimer: str
 
@@ -154,9 +162,16 @@ class AnalyzeResponse(BaseModel):
     other_detections: list[SlickPolygon] = Field(default_factory=list)
     release: Optional[RewindOutput]
     ranked_candidates: list[ScoredCandidate]
+    # Populated when the top two candidates are too close to separate. The flag
+    # is the exact string; joint_candidates are their MMSIs. None/empty means a
+    # single clear top suspect (or no candidates).
+    separation_flag: Optional[str] = None
+    joint_candidates: list[str] = Field(default_factory=list)
+    score_gap: Optional[float] = None
     rejected: list[Rejection]
     all_vessels: list[Vessel]           # so the frontend can draw every track
     wind_at_scene: WindSample
+    scene_name: str                     # which fixture ran: normal|ambiguous|calm
     evidence_id: str
     data_source: str                    # e.g. SYNTHETIC_FIXTURE
     provenance_note: str                # plain-language "this is sample data"

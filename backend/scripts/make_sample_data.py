@@ -1,16 +1,23 @@
 """
-Generate the bundled sample scene for OILTRACE.
+Generate the bundled sample scenes for OILTRACE.
 
-Writes four files into backend/sample_data/:
-  scene.tif        1000x1000 greyscale GeoTIFF over REGION_BOUNDS
-  wind.json        hourly wind for the 24 h before the scene
-  ships.json       6 fake vessels with timestamped tracks
-  scene_meta.json  scene id, acquisition time, bounds
+Writes three self-contained fixture directories under backend/sample_data/:
 
-Everything is seeded so the fixture is identical on every run. The one
-"culprit" vessel is placed by replaying the exact same backward-drift model
-that rewind.py uses, so the pipeline genuinely re-discovers it rather than us
-hand-waving a match.
+  scene_normal/     the original confident-attribution demo (one clear suspect)
+  scene_ambiguous/  scene_normal + a third, genuinely plausible vessel whose
+                    score lands close to the top candidate, so the candidate-
+                    separation rule refuses to rank one above the other
+  scene_calm/       scene_normal with ~1.8 m/s wind, so the existing wind gate
+                    rejects the slick before attribution
+
+Each directory holds scene.tif, wind.json, ships.json, scene_meta.json.
+
+Everything is seeded (seed 42) so the fixtures are identical on every run. The
+"culprit" vessel is placed by replaying the exact backward-drift model that
+rewind.py uses, so the pipeline genuinely re-discovers it. The ambiguous
+scene's third vessel is placed the same honest way — a plausible straight
+track through the release area on a heading close to (but not identical to) the
+slick axis; its score is whatever the existing scorer computes, never tuned.
 
 Run:  python -m scripts.make_sample_data   (from backend/)
 """
@@ -32,18 +39,34 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import config  # noqa: E402
 
-RNG = np.random.default_rng(config.RANDOM_SEED)
-
 MIN_LAT, MIN_LON, MAX_LAT, MAX_LON = config.REGION_BOUNDS
 WIDTH = HEIGHT = 1000
 
 SCENE_TIME = datetime(2026, 9, 10, 10, 0, 0, tzinfo=timezone.utc)
-SCENE_ID = "S1A_OILTRACE_20260910T1000"
+SCENE_ID_NORMAL = "S1A_OILTRACE_20260910T1000"
+SCENE_ID_AMBIGUOUS = "S1A_OILTRACE_20260910T1000_AMBIG"
+SCENE_ID_CALM = "S1A_OILTRACE_20260910T1000_CALM"
 
 # Constant wind direction keeps the fixture predictable. Wind blows FROM the
 # south-west (225 deg), which pushes the slick toward the north-east — exactly
 # the direction the drawn streak points.
 WIND_FROM_DEG = 225.0
+
+# Calm-scene wind speed (m/s). Below config.WIND_MIN_MS so the existing wind
+# gate rejects the slick. We do not touch the gate — only the wind.
+CALM_WIND_MS = 1.8
+
+# --- Third vessel (ambiguous scene) -----------------------------------------
+# The detected slick's long axis is ~33.6 deg. The third vessel travels on a
+# heading close to that axis but not identical, and passes through the release
+# area at the release time. Its 22:00 position is offset perpendicular to the
+# axis so it sits partway (not maximally) inside the release polygon, which
+# naturally lowers its spatial score just enough to open a small gap. These are
+# trajectory parameters only; the score is the scorer's own output.
+THIRD_HEADING_DEG = 50.0            # ~16 deg off the slick axis — close, not identical
+THIRD_PERP_BEARING_DEG = 123.6      # slick axis (33.6) + 90
+THIRD_PERP_OFFSET_M = 2500.0        # metres offset from the release centre
+THIRD_SPEED_MS = 4.0
 
 
 def iso(dt: datetime) -> str:
@@ -60,80 +83,81 @@ def step_latlon(lat: float, lon: float, bearing_deg: float, dist_m: float):
     return lat + dlat, lon + dlon
 
 
-# --- 1. scene.tif -----------------------------------------------------------
+# --- scene image ------------------------------------------------------------
 
-def make_scene_tif(path: Path):
-    # Bright sea with mild speckle; oil and look-alikes are dark.
+def build_scene_image(rng):
+    """Return the 1000x1000 greyscale array and its geotransform.
+
+    Identical draw order to the original generator so scene_normal reproduces
+    the existing fixture byte for byte."""
     SEA, SEA_NOISE = 200, 12
-    img = RNG.normal(SEA, SEA_NOISE, size=(HEIGHT, WIDTH))
+    img = rng.normal(SEA, SEA_NOISE, size=(HEIGHT, WIDTH))
     img = np.clip(img, 0, 255).astype(np.uint8)
 
-    # OpenCV is only needed to draw here; import locally so the generator has
-    # the same dependency surface as the detector.
-    import cv2
+    import cv2  # local import: same dependency surface as the detector
 
-    # One dark linear streak ~40 px wide running north-east. In image space
-    # north-east is up (smaller row) and right (larger col): draw from the
-    # lower-left toward the upper-right, centred on the image middle so its
+    # One dark linear streak ~40 px wide running north-east, centred so its
     # centroid sits at the centre of REGION_BOUNDS.
     cv2.line(img, (350, 650), (650, 350), color=40, thickness=40, lineType=cv2.LINE_AA)
 
-    # Two compact dark blobs elsewhere. They are NOT oil — look-alikes. Kept
-    # deliberately small so the detector's minimum-area rule rejects them.
-    cv2.circle(img, (200, 820), 16, color=55, thickness=-1)   # bottom-left
-    cv2.circle(img, (830, 180), 15, color=50, thickness=-1)   # top-right
+    # Two compact dark blobs — look-alikes small enough to be rejected on area.
+    cv2.circle(img, (200, 820), 16, color=55, thickness=-1)
+    cv2.circle(img, (830, 180), 15, color=50, thickness=-1)
 
     transform = from_bounds(MIN_LON, MIN_LAT, MAX_LON, MAX_LAT, WIDTH, HEIGHT)
+    return img, transform
+
+
+def write_tif(path: Path, img, transform):
     profile = {
-        "driver": "GTiff",
-        "height": HEIGHT,
-        "width": WIDTH,
-        "count": 1,
-        "dtype": "uint8",
-        "crs": "EPSG:4326",
-        "transform": transform,
+        "driver": "GTiff", "height": HEIGHT, "width": WIDTH, "count": 1,
+        "dtype": "uint8", "crs": "EPSG:4326", "transform": transform,
     }
     with rasterio.open(path, "w", **profile) as dst:
         dst.write(img, 1)
-    return transform
 
 
-# --- 2. wind.json -----------------------------------------------------------
+# --- wind -------------------------------------------------------------------
 
-def make_wind():
-    """Hourly wind for the 24 h before the scene, speed kept in 5-8 m/s."""
+def make_wind(rng):
+    """Hourly wind for the 24 h before the scene, speed kept in 5-8 m/s.
+    Same draw order as the original so scene_normal is unchanged."""
     samples = []
-    for h in range(24, -1, -1):  # 24 h before .. scene time, inclusive
+    for h in range(24, -1, -1):
         t = SCENE_TIME - timedelta(hours=h)
-        # Smooth-ish speed in [5, 8].
-        speed = 6.5 + 1.3 * math.sin(h / 3.0) + RNG.normal(0, 0.15)
+        speed = 6.5 + 1.3 * math.sin(h / 3.0) + rng.normal(0, 0.15)
         speed = float(np.clip(speed, 5.0, 8.0))
         samples.append({"time": iso(t), "speed_ms": round(speed, 2),
                         "dir_deg": WIND_FROM_DEG})
     return samples
 
 
-# --- 3. ships.json ----------------------------------------------------------
+def make_calm_wind():
+    """Hourly wind at CALM_WIND_MS. Deterministic (no randomness), so the calm
+    scene differs from normal only in wind speed."""
+    samples = []
+    for h in range(24, -1, -1):
+        t = SCENE_TIME - timedelta(hours=h)
+        samples.append({"time": iso(t), "speed_ms": round(CALM_WIND_MS, 2),
+                        "dir_deg": WIND_FROM_DEG})
+    return samples
+
+
+# --- ships ------------------------------------------------------------------
 
 def backtrack_center(slick_lat, slick_lon, wind_samples):
     """Replay rewind.py's model on the slick centroid to find the release
-    centre, so the culprit vessel can be planted exactly there."""
+    centre, so vessels can be planted where the backtrack lands."""
     lat, lon = slick_lat, slick_lon
-    # The SLICK_AGE_HOURS wind samples immediately before the scene.
     recent = wind_samples[-(config.SLICK_AGE_HOURS + 1):-1]
     for w in reversed(recent):
         dist = config.WIND_DRIFT_FACTOR * w["speed_ms"] * 3600.0
-        # Backward step: move upwind, i.e. toward where the wind comes FROM.
         lat, lon = step_latlon(lat, lon, w["dir_deg"], dist)
     return lat, lon
 
 
 def track(mmsi, name, start_lat, start_lon, bearing, speed_ms, gap_after=None):
-    """Build a vessel reporting every 20 minutes across the 24 h window.
-
-    gap_after: if set, drop reports for 40 minutes starting at this fraction
-    (0-1) through the window, simulating a dark-vessel AIS gap.
-    """
+    """Build a vessel reporting every 20 minutes across the 24 h window."""
     positions = []
     lat, lon = start_lat, start_lon
     total_min = 24 * 60
@@ -151,24 +175,25 @@ def track(mmsi, name, start_lat, start_lon, bearing, speed_ms, gap_after=None):
     return {"mmsi": mmsi, "name": name, "positions": positions}
 
 
+def track_through(mmsi, name, at_lat, at_lon, bearing, speed_ms):
+    """Like track(), but placed so the 22:00 (release-time) report sits exactly
+    at (at_lat, at_lon): step back 12 h from that point to find the start."""
+    lat, lon = at_lat, at_lon
+    for _ in range(int(config.SLICK_AGE_HOURS * 60 / 20)):
+        lat, lon = step_latlon(lat, lon, bearing + 180, speed_ms * 20 * 60)
+    return track(mmsi, name, lat, lon, bearing, speed_ms)
+
+
 def make_ships(release_lat, release_lon):
+    """The original six vessels (unchanged)."""
     ships = []
 
-    # Ship A — the culprit. Placed so that at the release time (scene - 12 h)
-    # it sits at the release centre, travelling north-east (bearing ~45), the
-    # same direction as the slick's long axis.
-    culprit_bearing = 45.0
-    culprit_speed = 4.0  # m/s
-    # Wind back from release time to the start of the window (12 h) so the
-    # track passes through the release centre at the right moment.
-    a_lat, a_lon = release_lat, release_lon
-    for _ in range(int(12 * 60 / 20)):
-        a_lat, a_lon = step_latlon(a_lat, a_lon, culprit_bearing + 180, culprit_speed * 20 * 60)
-    ships.append(track("219000001", "Nordfjord", a_lat, a_lon, culprit_bearing, culprit_speed))
+    # Ship A — the culprit. At the release time it sits at the release centre,
+    # travelling north-east (~45), the direction of the slick's long axis.
+    ships.append(track_through("219000001", "Nordfjord", release_lat, release_lon, 45.0, 4.0))
 
-    # Ship B — dark vessel. Passes near the release area (so it becomes a
-    # candidate) but on a wrong heading (~135, south-east) and with a 40-min
-    # AIS reporting gap.
+    # Ship B — dark vessel. Near the release area on a wrong heading (~135) with
+    # a 40-min AIS gap.
     b_lat, b_lon = release_lat - 0.02, release_lon - 0.02
     for _ in range(int(11 * 60 / 20)):
         b_lat, b_lon = step_latlon(b_lat, b_lon, 135.0 + 180, 3.0 * 20 * 60)
@@ -183,11 +208,21 @@ def make_ships(release_lat, release_lon):
     return ships
 
 
-# --- 4. scene_meta.json -----------------------------------------------------
+def make_third_vessel(release_lat, release_lon):
+    """The extra plausible vessel for the ambiguous scene. Passes through the
+    release area at the release time on a heading close to the slick axis, but
+    offset perpendicular so it sits partway inside the polygon."""
+    at_lat, at_lon = step_latlon(release_lat, release_lon,
+                                 THIRD_PERP_BEARING_DEG, THIRD_PERP_OFFSET_M)
+    return track_through("370000999", "Storebaelt", at_lat, at_lon,
+                         THIRD_HEADING_DEG, THIRD_SPEED_MS)
 
-def make_scene_meta():
+
+# --- scene metadata / writing -----------------------------------------------
+
+def scene_meta(scene_id):
     return {
-        "scene_id": SCENE_ID,
+        "scene_id": scene_id,
         "acquired_at": iso(SCENE_TIME),
         "bounds": {
             "min_lat": MIN_LAT, "min_lon": MIN_LON,
@@ -196,29 +231,46 @@ def make_scene_meta():
     }
 
 
+def write_scene(name, img, transform, wind, ships, scene_id):
+    d = config.SAMPLE_DATA_DIR / f"scene_{name}"
+    d.mkdir(parents=True, exist_ok=True)
+    write_tif(d / "scene.tif", img, transform)
+    (d / "wind.json").write_text(json.dumps(wind, indent=2))
+    (d / "ships.json").write_text(json.dumps(ships, indent=2))
+    (d / "scene_meta.json").write_text(json.dumps(scene_meta(scene_id), indent=2))
+    return d
+
+
 def main():
-    out = config.SAMPLE_DATA_DIR
-    out.mkdir(parents=True, exist_ok=True)
+    config.SAMPLE_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    make_scene_tif(config.SCENE_TIF)
+    # One RNG, consumed in the same order as the original generator (image then
+    # wind) so scene_normal reproduces the existing fixture exactly.
+    rng = np.random.default_rng(config.RANDOM_SEED)
+    img, transform = build_scene_image(rng)
+    wind = make_wind(rng)
 
-    wind = make_wind()
-    config.WIND_JSON.write_text(json.dumps(wind, indent=2))
-
-    # Slick centroid is the centre of the region (streak is drawn centred).
     slick_lat = (MIN_LAT + MAX_LAT) / 2.0
     slick_lon = (MIN_LON + MAX_LON) / 2.0
     release_lat, release_lon = backtrack_center(slick_lat, slick_lon, wind)
 
     ships = make_ships(release_lat, release_lon)
-    config.SHIPS_JSON.write_text(json.dumps(ships, indent=2))
 
-    config.SCENE_META_JSON.write_text(json.dumps(make_scene_meta(), indent=2))
+    # NORMAL — the existing clear-ranking demo, unchanged.
+    write_scene("normal", img, transform, wind, ships, SCENE_ID_NORMAL)
 
-    print(f"Wrote sample data to {out}")
-    print(f"  scene centroid   ~ ({slick_lat:.4f}, {slick_lon:.4f})")
-    print(f"  release centre   ~ ({release_lat:.4f}, {release_lon:.4f})")
-    print(f"  vessels: {len(ships)}  wind samples: {len(wind)}")
+    # AMBIGUOUS — normal image + wind, existing six vessels plus a third.
+    third = make_third_vessel(release_lat, release_lon)
+    write_scene("ambiguous", img, transform, wind, ships + [third], SCENE_ID_AMBIGUOUS)
+
+    # CALM — normal image + vessels, wind dropped to ~1.8 m/s.
+    write_scene("calm", img, transform, make_calm_wind(), ships, SCENE_ID_CALM)
+
+    print(f"Wrote 3 scenes to {config.SAMPLE_DATA_DIR}")
+    print(f"  release centre    ~ ({release_lat:.4f}, {release_lon:.4f})")
+    print(f"  normal vessels    : {len(ships)}")
+    print(f"  ambiguous vessels : {len(ships) + 1}  (added Storebaelt)")
+    print(f"  calm wind         : {CALM_WIND_MS} m/s")
 
 
 if __name__ == "__main__":

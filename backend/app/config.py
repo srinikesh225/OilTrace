@@ -61,6 +61,14 @@ SPATIAL_FULL_CREDIT_KM = 3.0
 # a heuristic and three-decimal precision would be false confidence.
 SCORE_DECIMALS = 2
 
+# --- Candidate separation (explain.py) --------------------------------------
+# When the gap between the top two candidates' total scores is smaller than
+# this, the evidence does not justify naming a single suspect: the two are
+# returned as joint candidates instead. This is a presentation/interpretation
+# rule only — it never changes any score. Triggers strictly on gap < MIN, so a
+# gap exactly equal to MIN does NOT trigger.
+CANDIDATE_SEPARATION_MIN = 0.15
+
 # --- Geodesy ----------------------------------------------------------------
 # Simple spherical constants shared by every stage that converts between
 # metres/kilometres and degrees. Centralised so no stage carries its own copy.
@@ -79,15 +87,37 @@ PROVENANCE_NOTE = (
     "not a real-world detection."
 )
 
-# --- Paths ------------------------------------------------------------------
+# --- Scenes / paths ---------------------------------------------------------
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 SAMPLE_DATA_DIR = BACKEND_DIR / "sample_data"
 
-SCENE_TIF = SAMPLE_DATA_DIR / "scene.tif"
-WIND_JSON = SAMPLE_DATA_DIR / "wind.json"
-SHIPS_JSON = SAMPLE_DATA_DIR / "ships.json"
-SCENE_META_JSON = SAMPLE_DATA_DIR / "scene_meta.json"
+# The bundled demonstration scenes. Each is a self-contained fixture directory
+# under SAMPLE_DATA_DIR ("scene_<name>/") holding scene.tif, wind.json,
+# ships.json, and scene_meta.json.
+SCENE_NAMES = ("normal", "ambiguous", "calm")
+DEFAULT_SCENE = "normal"
+
+
+def scene_paths(scene: str) -> dict:
+    """Resolve the four fixture files for a named scene.
+
+    Only the known scene names are accepted, so a request can never reach an
+    arbitrary filesystem path.
+    """
+    if scene not in SCENE_NAMES:
+        raise ValueError(
+            f"Unknown scene '{scene}'. Valid scenes: {', '.join(SCENE_NAMES)}."
+        )
+    d = SAMPLE_DATA_DIR / f"scene_{scene}"
+    return {
+        "dir": d,
+        "tif": d / "scene.tif",
+        "wind": d / "wind.json",
+        "ships": d / "ships.json",
+        "meta": d / "scene_meta.json",
+    }
+
 
 # The disclaimer that must ride along on every response, verbatim.
 DISCLAIMER = "Detection is not attribution. Attribution is not proof."

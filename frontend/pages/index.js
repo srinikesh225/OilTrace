@@ -30,18 +30,33 @@ function ScoreBar({ label, value, weight }) {
   );
 }
 
+// The scenes the backend exposes via POST /analyze {scene}. Normal and Calm
+// are mandatory; Ambiguous is shown because the backend supports it.
+const SCENES = [
+  { id: "normal", label: "Normal" },
+  { id: "ambiguous", label: "Ambiguous" },
+  { id: "calm", label: "Calm" },
+];
+
 export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [weights, setWeights] = useState(null);
+  const [scene, setScene] = useState("normal");
 
-  async function runAnalysis() {
+  // Call the existing POST /analyze with the scene in the body (existing API
+  // contract — no new endpoint). Defaults to the current scene.
+  async function runAnalysis(sceneName = scene) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/analyze`, { method: "POST" });
+      const res = await fetch(`${API}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scene: sceneName }),
+      });
       if (!res.ok) throw new Error(`API returned ${res.status}`);
       const json = await res.json();
       setData(json);
@@ -61,12 +76,23 @@ export default function Home() {
     }
   }
 
+  function selectScene(sceneName) {
+    if (sceneName === scene || loading) return;
+    setScene(sceneName);
+    runAnalysis(sceneName);
+  }
+
   useEffect(() => {
-    runAnalysis();
+    runAnalysis("normal");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const topMmsi = data?.ranked_candidates?.[0]?.mmsi ?? null;
+
+  // A slick rejected by the wind gate: no primary slick, but a filter-stage
+  // rejection carries the backend's exact reason. Shown verbatim, never rewritten.
+  const filterRejection = data?.rejected?.find((r) => r.stage === "filter");
+  const slickRejected = data && !data.detected_slick && filterRejection;
 
   return (
     <>
@@ -86,6 +112,19 @@ export default function Home() {
             </div>
           </div>
           <div className="topbar-right">
+            <div className="scene-switch" role="group" aria-label="Scene">
+              {SCENES.map((s) => (
+                <button
+                  key={s.id}
+                  className={`scene-btn${scene === s.id ? " active" : ""}`}
+                  onClick={() => selectScene(s.id)}
+                  disabled={loading}
+                  aria-pressed={scene === s.id}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
             {data?.scene && (
               <div className="scene-meta">
                 <div>
@@ -118,6 +157,14 @@ export default function Home() {
             <strong>Synthetic sample data.</strong>{" "}
             {data.provenance_note ||
               "Generated fixture — results demonstrate pipeline mechanics, not a real detection."}
+          </div>
+        )}
+
+        {slickRejected && (
+          <div className="banner rejection" role="status">
+            <strong>Slick rejected at the wind gate.</strong>{" "}
+            {/* Verbatim backend reason — not rewritten by the frontend. */}
+            {filterRejection.reason}
           </div>
         )}
 
@@ -155,6 +202,13 @@ export default function Home() {
               <li>
                 <span className="sw" style={{ background: "#8a9bab" }} />
                 Other vessel tracks
+              </li>
+              <li>
+                <span
+                  className="sw"
+                  style={{ background: "#1c3a35", border: "1px solid #3c6459" }}
+                />
+                Land (Denmark / Sweden)
               </li>
             </ul>
           </section>

@@ -100,6 +100,23 @@ def explain(name_out: NameOutput, rewind_out: RewindOutput, scene: SceneMeta,
             "ais_gap_note": s.ais_gap_note,
         })
 
+    # --- Candidate separation rule ------------------------------------------
+    # Interpretation only: if the top two totals are closer than
+    # CANDIDATE_SEPARATION_MIN, the evidence does not justify naming one
+    # suspect. We flag it and mark both as joint candidates. Scores are read,
+    # never modified. Triggers strictly on gap < MIN (equal does not trigger).
+    separation_flag = None
+    joint_candidates: list[str] = []
+    score_gap = None
+    if len(scored) >= 2:
+        score_gap = round(scored[0].score.total - scored[1].score.total,
+                          config.SCORE_DECIMALS)
+        if score_gap < config.CANDIDATE_SEPARATION_MIN:
+            separation_flag = "scores not separated - insufficient evidence to rank"
+            scored[0].joint = True
+            scored[1].joint = True
+            joint_candidates = [scored[0].mmsi, scored[1].mmsi]
+
     evidence_id = scene.scene_id
 
     evidence_bundle = {
@@ -129,6 +146,7 @@ def explain(name_out: NameOutput, rewind_out: RewindOutput, scene: SceneMeta,
             "SCORE_WEIGHT_COURSE": config.SCORE_WEIGHT_COURSE,
             "SPATIAL_FULL_CREDIT_KM": config.SPATIAL_FULL_CREDIT_KM,
             "SCORE_DECIMALS": config.SCORE_DECIMALS,
+            "CANDIDATE_SEPARATION_MIN": config.CANDIDATE_SEPARATION_MIN,
         },
         "stage_outputs": {
             "see": see_out.model_dump(),
@@ -137,12 +155,21 @@ def explain(name_out: NameOutput, rewind_out: RewindOutput, scene: SceneMeta,
             "name": name_out.model_dump(),
         },
         "score_breakdown": breakdowns,
+        "candidate_separation": {
+            "min": config.CANDIDATE_SEPARATION_MIN,
+            "gap": score_gap,
+            "separation_flag": separation_flag,
+            "joint_candidates": joint_candidates,
+        },
         "disclaimer": config.DISCLAIMER,
     }
 
     explain_out = ExplainOutput(
         scene_id=scene.scene_id,
         ranked_candidates=scored,
+        separation_flag=separation_flag,
+        joint_candidates=joint_candidates,
+        score_gap=score_gap,
         evidence_id=evidence_id,
         disclaimer=config.DISCLAIMER,
     )

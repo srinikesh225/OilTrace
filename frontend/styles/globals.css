@@ -108,6 +108,38 @@ body {
   color: #e7eef2;
 }
 
+.scene-switch {
+  display: inline-flex;
+  border: 1px solid #24485c;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.scene-btn {
+  background: transparent;
+  color: #cdd9e0;
+  border: none;
+  border-right: 1px solid #24485c;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.scene-btn:last-child {
+  border-right: none;
+}
+.scene-btn:hover:not(:disabled) {
+  background: #16323f;
+}
+.scene-btn.active {
+  background: var(--slick);
+  color: #1a1205;
+  font-weight: 600;
+}
+.scene-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .run {
   background: var(--slick);
   color: #1a1205;
@@ -140,6 +172,14 @@ body {
   padding: 8px 20px;
   font-size: 12px;
   border-bottom: 1px solid #f0dcae;
+}
+
+.banner.rejection {
+  background: #fbe9ea;
+  color: #7c2530;
+  padding: 10px 20px;
+  font-size: 13px;
+  border-bottom: 1px solid #f0c9cd;
 }
 
 .other-note {

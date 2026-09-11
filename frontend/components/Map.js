@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import {
   MapContainer,
+  Pane,
+  GeoJSON,
   Rectangle,
   Polygon,
   Polyline,
@@ -9,6 +11,11 @@ import {
   useMap,
 } from "react-leaflet";
 
+// Offline geographic context: Danish/Swedish land clipped to REGION_BOUNDS.
+// Imported as a bundled module, so it ships inside the app JS and causes no
+// runtime network request (no tiles, no remote GeoJSON, no CDN).
+import landGeoJson from "../data/land.json";
+
 const COLORS = {
   footprint: "#5b7183",
   slick: "#e0a94a", // detected slick — amber
@@ -16,6 +23,17 @@ const COLORS = {
   track: "#8a9bab", // ordinary vessel track
   culprit: "#d1495b", // top-ranked vessel
   selected: "#2f6fed", // currently selected vessel
+};
+
+// Muted land against the dark sea background; a thin coastline. Deliberately
+// low-contrast so it never competes with the slick/release/track vectors.
+// `interactive: false` keeps it from intercepting clicks meant for the tracks.
+const LAND_STYLE = {
+  fillColor: "#1c3a35",
+  fillOpacity: 1,
+  color: "#3c6459",
+  weight: 0.8,
+  interactive: false,
 };
 
 function FitToScene({ bounds }) {
@@ -49,6 +67,14 @@ export default function Map({ data, topMmsi, selectedMmsi, onSelect }) {
       style={{ height: "100%", width: "100%", background: "#0d2230" }}
     >
       {b && <FitToScene bounds={b} />}
+
+      {/* Land geography — bottom layer. A dedicated pane with a z-index below
+          the overlay pane guarantees the land always sits beneath every
+          vector, regardless of mount order or scene switches. Rendered once
+          from the static import; the sea is the map background behind it. */}
+      <Pane name="landbase" style={{ zIndex: 250 }}>
+        <GeoJSON data={landGeoJson} style={() => LAND_STYLE} interactive={false} />
+      </Pane>
 
       {/* Scene footprint */}
       {b && (

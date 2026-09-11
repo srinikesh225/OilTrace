@@ -17,9 +17,11 @@ from __future__ import annotations
 import json
 import threading
 import time
+from typing import Literal, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from . import config
 from .models import AnalyzeResponse, SceneMeta
@@ -53,20 +55,27 @@ _EVIDENCE: dict[str, dict] = {}
 _PIPELINE_LOCK = threading.Lock()
 
 
+class AnalyzeRequest(BaseModel):
+    """Optional body for POST /analyze. Restricting `scene` to the known names
+    (a Literal) both documents the choices and blocks any arbitrary path."""
+    scene: Literal["normal", "ambiguous", "calm"] = config.DEFAULT_SCENE
+
+
 def _load_json(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def run_pipeline() -> tuple[AnalyzeResponse, dict]:
-    """Run SEE -> FILTER -> REWIND -> NAME -> EXPLAIN on the bundled scene."""
-    scene = SceneMeta(**_load_json(config.SCENE_META_JSON))
-    wind_samples = _load_json(config.WIND_JSON)
-    ship_source = FileShipSource(config.SHIPS_JSON)
+def run_pipeline(scene_name: str = config.DEFAULT_SCENE) -> tuple[AnalyzeResponse, dict]:
+    """Run SEE -> FILTER -> REWIND -> NAME -> EXPLAIN on a named bundled scene."""
+    paths = config.scene_paths(scene_name)  # validates the name; no arbitrary paths
+    scene = SceneMeta(**_load_json(paths["meta"]))
+    wind_samples = _load_json(paths["wind"])
+    ship_source = FileShipSource(paths["ships"])
 
     # 1. SEE — detect slick polygons.
     segmenter = Segmenter()
-    see_out, see_rejections = segmenter.segment(scene.scene_id, config.SCENE_TIF)
+    see_out, see_rejections = segmenter.segment(scene.scene_id, paths["tif"])
 
     # 2. FILTER — wind gate.
     filter_out = filter_stage.apply_wind_gate(see_out, scene.acquired_at, wind_samples)
@@ -107,9 +116,13 @@ def run_pipeline() -> tuple[AnalyzeResponse, dict]:
         other_detections=other_detections,
         release=rewind_out,
         ranked_candidates=ranked,
+        separation_flag=explain_out.separation_flag if explain_out else None,
+        joint_candidates=explain_out.joint_candidates if explain_out else [],
+        score_gap=explain_out.score_gap if explain_out else None,
         rejected=all_rejections,
         all_vessels=all_vessels,
         wind_at_scene=filter_out.wind_at_scene,
+        scene_name=scene_name,
         evidence_id=evidence_id,
         data_source=config.DATA_SOURCE,
         provenance_note=config.PROVENANCE_NOTE,
@@ -119,6 +132,7 @@ def run_pipeline() -> tuple[AnalyzeResponse, dict]:
     if evidence_bundle is None:
         evidence_bundle = {
             "evidence_id": evidence_id,
+            "scene": scene_name,
             "scene_id": scene.scene_id,
             "scene_timestamp": scene.acquired_at,
             "data_source": config.DATA_SOURCE,
@@ -131,7 +145,7 @@ def run_pipeline() -> tuple[AnalyzeResponse, dict]:
     return response, evidence_bundle
 
 
-def _run_and_cache() -> tuple[dict, dict, float]:
+def _run_and_cache(scene_name: str = config.DEFAULT_SCENE) -> tuple[dict, dict, float]:
     """Run the pipeline under the lock and update the cache. Input problems
     (missing/corrupt sample files) become a clean HTTP 500 with a readable
     message instead of a raw stack trace."""
@@ -139,7 +153,7 @@ def _run_and_cache() -> tuple[dict, dict, float]:
     try:
         with _PIPELINE_LOCK:
             start = time.perf_counter()
-            response, bundle = run_pipeline()
+            response, bundle = run_pipeline(scene_name)
             elapsed = time.perf_counter() - start
             _LAST_RESULT = response.model_dump()
             _EVIDENCE[bundle["evidence_id"]] = bundle
@@ -169,9 +183,14 @@ def root():
 
 
 @app.post("/analyze")
-def analyze():
-    """Run the whole chain and return the full result, rejections included."""
-    result, _bundle, elapsed = _run_and_cache()
+def analyze(body: Optional[AnalyzeRequest] = Body(default=None)):
+    """Run the whole chain on the requested scene and return the full result.
+
+    The optional body selects the scene (`normal`, `ambiguous`, `calm`). With no
+    body it defaults to `normal`, so existing callers are unaffected. An unknown
+    scene name is rejected by the request model (HTTP 422)."""
+    scene_name = body.scene if body is not None else config.DEFAULT_SCENE
+    result, _bundle, elapsed = _run_and_cache(scene_name)
     out = dict(result)
     # Surface the runtime so the <10s budget is visible, not just asserted.
     out["_runtime_seconds"] = round(elapsed, 3)
