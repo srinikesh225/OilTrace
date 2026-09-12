@@ -19,7 +19,9 @@ COPY sample_data ./sample_data
 
 # Regenerate sample data at build time if it is missing (it is committed, so
 # this is a safety net, not a network call).
-RUN test -f sample_data/scene.tif || python -m scripts.make_sample_data
+RUN test -f sample_data/scene_normal/scene.tif || python -m scripts.make_sample_data
 
+# Bind to the platform-provided $PORT (Render, Cloud Run, etc.), defaulting to
+# 8000 for local `docker run`. Shell form so the variable is expanded.
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

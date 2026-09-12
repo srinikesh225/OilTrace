@@ -2,7 +2,9 @@ import Head from "next/head";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
-const API = process.env.NEXT_PUBLIC_API_BASE;
+// Same-origin API base. next.config.js rewrites /api/* to the backend, so the
+// browser only ever talks to this app's own origin (works in dev and deployed).
+const API = "/api";
 
 // Leaflet touches `window`, so the map is client-only.
 const Map = dynamic(() => import("../components/Map"), {
@@ -69,7 +71,7 @@ export default function Home() {
       }
     } catch (e) {
       setError(
-        `Could not reach the OILTRACE API at ${API}. Start the backend, then retry. (${e.message})`
+        `Could not reach the OILTRACE API. Is the backend running? (${e.message})`
       );
     } finally {
       setLoading(false);

@@ -1,0 +1,44 @@
+# OILTRACE — Render Blueprint (deploys backend + frontend from this repo).
+#
+# Deploy: Render dashboard -> New + -> Blueprint -> connect this GitHub repo ->
+# Apply. Render reads this file, builds both services, and wires the frontend
+# to the backend automatically.
+#
+# The frontend calls its own /api/* path; Next rewrites those to the backend
+# (BACKEND_ORIGIN below), so the shareable link is just the frontend URL and
+# there is no cross-origin/CORS or baked-in backend URL to manage.
+#
+# Note: the "free" plan spins services down after ~15 min idle, so the first
+# hit after a quiet period is slow (cold start). Fine for a demo; bump both to
+# a paid plan (or ping them) during judging if you want them always warm.
+
+services:
+  # --- Backend: FastAPI in Docker (rasterio/opencv/GDAL native deps) ---------
+  - type: web
+    name: oiltrace-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /
+    autoDeploy: true
+
+  # --- Frontend: Next.js (proxies /api/* to the backend) ---------------------
+  - type: web
+    name: oiltrace-web
+    runtime: node
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npx next start -p $PORT
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      # Backend public host (e.g. oiltrace-api.onrender.com); next.config.js
+      # prepends https:// when there is no scheme.
+      - key: BACKEND_ORIGIN
+        fromService:
+          type: web
+          name: oiltrace-api
+          property: host
