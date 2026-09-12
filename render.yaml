@@ -1,16 +1,20 @@
 # OILTRACE — Render Blueprint (deploys backend + frontend from this repo).
 #
 # Deploy: Render dashboard -> New + -> Blueprint -> connect this GitHub repo ->
-# Apply. Render reads this file, builds both services, and wires the frontend
-# to the backend automatically.
+# Apply. See DEPLOY.md for the full flow.
 #
-# The frontend calls its own /api/* path; Next rewrites those to the backend
-# (BACKEND_ORIGIN below), so the shareable link is just the frontend URL and
-# there is no cross-origin/CORS or baked-in backend URL to manage.
+# Architecture: separate domains. The frontend (Next.js) calls the backend
+# (FastAPI in Docker) directly at NEXT_PUBLIC_API_URL; the backend allows the
+# frontend origin via ALLOWED_ORIGINS (explicit CORS, no wildcard).
 #
-# Note: the "free" plan spins services down after ~15 min idle, so the first
-# hit after a quiet period is slow (cold start). Fine for a demo; bump both to
-# a paid plan (or ping them) during judging if you want them always warm.
+# The two URL variables are intentionally left unset (sync: false) because of
+# the deploy ordering (backend URL must exist before the frontend is built with
+# it; the frontend URL must exist before the backend allows its origin):
+#   1. Apply the blueprint; both services get URLs.
+#   2. Set oiltrace-web NEXT_PUBLIC_API_URL = the oiltrace-api URL, redeploy web.
+#   3. Set oiltrace-api ALLOWED_ORIGINS = the oiltrace-web URL.
+#
+# Render's free plan idles services (cold starts). Fine for a demo.
 
 services:
   # --- Backend: FastAPI in Docker (rasterio/opencv/GDAL native deps) ---------
@@ -20,10 +24,14 @@ services:
     plan: free
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    healthCheckPath: /
+    healthCheckPath: /health
     autoDeploy: true
+    envVars:
+      # Comma-separated frontend origin(s), e.g. https://oiltrace-web.onrender.com
+      - key: ALLOWED_ORIGINS
+        sync: false
 
-  # --- Frontend: Next.js (proxies /api/* to the backend) ---------------------
+  # --- Frontend: Next.js (calls the backend cross-origin) --------------------
   - type: web
     name: oiltrace-web
     runtime: node
@@ -35,10 +43,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
-      # Backend public host (e.g. oiltrace-api.onrender.com); next.config.js
-      # prepends https:// when there is no scheme.
-      - key: BACKEND_ORIGIN
-        fromService:
-          type: web
-          name: oiltrace-api
-          property: host
+      # Backend base URL (full https:// URL), e.g. https://oiltrace-api.onrender.com
+      # Build time only: after setting this, redeploy the web service.
+      - key: NEXT_PUBLIC_API_URL
+        sync: false

@@ -2,9 +2,11 @@ import Head from "next/head";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
-// Same-origin API base. next.config.js rewrites /api/* to the backend, so the
-// browser only ever talks to this app's own origin (works in dev and deployed).
-const API = "/api";
+// Backend API base URL. NEXT_PUBLIC_* is inlined into the browser bundle at
+// build time; set NEXT_PUBLIC_API_URL to the backend's domain in production
+// (e.g. https://api.example.com). Falls back to the local dev backend, so
+// local development needs no environment variables.
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Leaflet touches `window`, so the map is client-only.
 const Map = dynamic(() => import("../components/Map"), {

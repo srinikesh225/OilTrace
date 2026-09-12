@@ -21,7 +21,8 @@ COPY sample_data ./sample_data
 # this is a safety net, not a network call).
 RUN test -f sample_data/scene_normal/scene.tif || python -m scripts.make_sample_data
 
-# Bind to the platform-provided $PORT (Render, Cloud Run, etc.), defaulting to
-# 8000 for local `docker run`. Shell form so the variable is expanded.
+# Entry point binds 0.0.0.0 on $PORT (default 8000) via app/main.py's __main__,
+# so the platform-provided PORT (Render, Cloud Run, etc.) is respected with no
+# shell-expansion tricks in the CMD.
 EXPOSE 8000
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["python", "-m", "app.main"]

@@ -6,6 +6,7 @@ assumptions are auditable in one place. Nothing else in the codebase should
 hard-code these values.
 """
 
+import os
 from pathlib import Path
 
 # --- Physical / pipeline tunables -------------------------------------------
@@ -121,3 +122,30 @@ def scene_paths(scene: str) -> dict:
 
 # The disclaimer that must ride along on every response, verbatim.
 DISCLAIMER = "Detection is not attribution. Attribution is not proof."
+
+
+# --- Deployment: CORS + scene discovery -------------------------------------
+
+# Frontend origins allowed to call the API. Set ALLOWED_ORIGINS to a
+# comma-separated list in production (e.g.
+# "https://oiltrace.example.com,https://www.oiltrace.example.com"). Defaults to
+# the local dev frontend so local development needs no environment variables.
+# Never a wildcard: origins are an explicit list.
+DEFAULT_ALLOWED_ORIGIN = "http://localhost:3000"
+
+
+def allowed_origins() -> list[str]:
+    raw = os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGIN)
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
+def available_scenes() -> list[str]:
+    """Scene names that actually have a fixture directory on disk. Derived from
+    the filesystem so /health can never advertise a scene whose data is
+    missing. Cheap: only directory-existence checks, no pipeline work."""
+    return [name for name in SCENE_NAMES if scene_paths(name)["dir"].is_dir()]
+
+
+# Backend listening port. The container/host sets PORT; default 8000 locally.
+def port() -> int:
+    return int(os.getenv("PORT", "8000"))

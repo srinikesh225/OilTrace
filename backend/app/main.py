@@ -39,10 +39,14 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# The frontend is served from a different origin in dev.
+# The frontend runs on a separate origin (its own domain in production). Only
+# the explicitly allowed origins may call the API — never a wildcard. The list
+# comes from ALLOWED_ORIGINS (comma-separated), defaulting to the local dev
+# frontend. See config.allowed_origins().
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.allowed_origins(),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -182,6 +186,14 @@ def root():
             "data_source": config.DATA_SOURCE, "disclaimer": config.DISCLAIMER}
 
 
+@app.get("/health")
+def health():
+    """Lightweight liveness/readiness probe for hosting platforms. Does no
+    pipeline work, no image processing, no network calls — just confirms the
+    app is up and reports which scene fixtures are actually present on disk."""
+    return {"status": "ok", "scenes": config.available_scenes()}
+
+
 @app.post("/analyze")
 def analyze(body: Optional[AnalyzeRequest] = Body(default=None)):
     """Run the whole chain on the requested scene and return the full result.
@@ -218,3 +230,12 @@ def evidence(evidence_id: str):
         raise HTTPException(status_code=404,
                             detail=f"No evidence bundle for id '{evidence_id}'.")
     return bundle
+
+
+if __name__ == "__main__":
+    # Production/container entrypoint: bind 0.0.0.0 on $PORT (default 8000) so
+    # the app is reachable on the container's network interface, not just
+    # loopback. `python -m app.main` uses this.
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=config.port())
