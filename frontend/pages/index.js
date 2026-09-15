@@ -42,6 +42,32 @@ const SCENES = [
   { id: "calm", label: "Calm" },
 ];
 
+// The exact set of scene ids the request body may carry: "normal" |
+// "ambiguous" | "calm". Anything else (e.g. a React event forwarded by a bare
+// onClick={runAnalysis}) must be rejected before serialising, not stringified.
+const VALID_SCENES = SCENES.map((s) => s.id);
+
+// Tags a failure so the UI can tell a client-side mistake (bad scene value)
+// apart from the request never reaching / being rejected by the backend.
+class AnalysisError extends Error {
+  constructor(kind, message) {
+    super(message);
+    this.name = "AnalysisError";
+    this.kind = kind; // "client" | "http"
+  }
+}
+
+// Describe a rejected scene value without serialising it — the whole point is
+// that the value may be a circular object (a synthetic event) that JSON.stringify
+// would choke on. Name it by type so the thrown error is actionable.
+function describeScene(value) {
+  if (typeof value === "string") return `"${value}"`;
+  if (value && typeof value === "object") {
+    return `a ${value.constructor?.name || "object"} value`;
+  }
+  return String(value);
+}
+
 export default function Home() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -56,12 +82,25 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
+      // Guard the request body before it is serialised. If sceneName is not a
+      // known scene id (the classic bug: a bare onClick forwards the click
+      // event here), fail loudly and name the bad value instead of letting
+      // JSON.stringify hit a circular structure.
+      if (!VALID_SCENES.includes(sceneName)) {
+        throw new AnalysisError(
+          "client",
+          `Invalid scene ${describeScene(sceneName)}. Expected one of ${VALID_SCENES.join(", ")}.`
+        );
+      }
+
       const res = await fetch(`${API}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scene: sceneName }),
       });
-      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      if (!res.ok) {
+        throw new AnalysisError("http", `API returned ${res.status}`);
+      }
       const json = await res.json();
       setData(json);
       setSelected(json.ranked_candidates?.[0]?.mmsi ?? null);
@@ -72,9 +111,18 @@ export default function Home() {
         setWeights(bundle.config_used || null);
       }
     } catch (e) {
-      setError(
-        `Could not reach the OILTRACE API. Is the backend running? (${e.message})`
-      );
+      // A client-side error (bad scene value) is our bug to fix, not a backend
+      // outage — say so plainly. HTTP and network failures both mean the
+      // request didn't succeed against the API, so they share the API message.
+      if (e instanceof AnalysisError && e.kind === "client") {
+        setError(`Couldn't build the analysis request: ${e.message}`);
+      } else if (e instanceof AnalysisError && e.kind === "http") {
+        setError(`The OILTRACE API returned an error. (${e.message})`);
+      } else {
+        setError(
+          `Could not reach the OILTRACE API. Is the backend running? (${e.message})`
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -150,7 +198,11 @@ export default function Home() {
                 )}
               </div>
             )}
-            <button className="run" onClick={runAnalysis} disabled={loading}>
+            <button
+              className="run"
+              onClick={() => runAnalysis(scene)}
+              disabled={loading}
+            >
               {loading ? "Running…" : "Re-run analysis"}
             </button>
           </div>
