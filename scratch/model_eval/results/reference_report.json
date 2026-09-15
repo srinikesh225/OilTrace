@@ -1,0 +1,49 @@
+{
+  "weights_loaded_with": "weights_only=True",
+  "input_image": "source\\src\\sample_padding_image_for_inference\\img_0814.jpg",
+  "input_dimensions": [
+    650,
+    1250,
+    3
+  ],
+  "model_input_dimensions": [
+    1,
+    3,
+    672,
+    1280
+  ],
+  "output_shape": [
+    1,
+    5,
+    672,
+    1280
+  ],
+  "final_mask_dimensions": [
+    650,
+    1250,
+    3
+  ],
+  "inference_time_s": 1.9809,
+  "timing_note": "forward+softmax+argmax on CPU, one warmup pass excluded",
+  "total_pixels": 812500,
+  "pixel_counts": {
+    "sea_surface": 812141,
+    "oil_spill": 309,
+    "oil_spill_look_alike": 5,
+    "ship": 45,
+    "land": 0
+  },
+  "pixel_percentages": {
+    "sea_surface": 99.9558,
+    "oil_spill": 0.038,
+    "oil_spill_look_alike": 0.0006,
+    "ship": 0.0055,
+    "land": 0.0
+  },
+  "counts_sum_ok": true,
+  "stats_used": {
+    "mean": 0.5185,
+    "std": 0.197
+  },
+  "torch": "2.14.0+cpu"
+}

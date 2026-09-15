@@ -1,0 +1,96 @@
+{
+  "experiment": "OILTRACE isolated model evaluation — HTSM Oil Spill Segmentation",
+  "isolation": "All work confined to scratch/model_eval/. backend/app/ not modified or imported.",
+  "source": {
+    "repository": "https://github.com/AbhishekRS4/HTSM_Oil_Spill_Segmentation",
+    "commit": "cda02cebb8bca0481ce32d34e5f68f7077865888",
+    "branch": "main",
+    "commit_date": "2025-03-31",
+    "license": "MIT (LICENSE.md)",
+    "paper": "Satyanarayana & Dhali, ICPRAM 2025, pp. 741-748, doi:10.5220/0013259600003905",
+    "architecture": "ResNet50 DeepLabV3+ (src/training/seg_models.py::ResNet50DeepLabV3Plus)"
+  },
+  "weights": {
+    "filename": "oil_spill_seg_resnet_50_deeplab_v3+_80.pt",
+    "source_url": "https://huggingface.co/spaces/abhishekrs4/Oil_Spill_Segmentation/resolve/main/resnet_50_deeplab_v3+/oil_spill_seg_resnet_50_deeplab_v3+_80.pt",
+    "size_bytes": 167546333,
+    "sha256": "34f08c07ec6e4705674baaf6a276c1cd24a7b91b2c9431e20e2ca303f8586bef",
+    "committed": false
+  },
+  "environment": {
+    "cpu": "Intel(R) Core(TM) Ultra 5 125H",
+    "python": "3.13.2",
+    "torch": "2.14.0+cpu",
+    "torchvision": "0.29.0+cpu",
+    "numpy": "2.3.2",
+    "opencv": "5.0.0",
+    "scikit_image": "0.26.0",
+    "device": "cpu",
+    "note": "Repo pins torch==1.12.1+cu113 / torchvision==0.13.1+cu113 (no Python 3.13 or CPU wheels); used current CPU builds. Repo modules import and build unchanged under torchvision 0.29."
+  },
+  "class_definitions": {
+    "0": "sea_surface", "1": "oil_spill", "2": "oil_spill_look_alike", "3": "ship", "4": "land"
+  },
+  "colour_map_rgb": {
+    "sea_surface": [0, 0, 0], "oil_spill": [0, 255, 255], "oil_spill_look_alike": [255, 0, 0],
+    "ship": [153, 76, 0], "land": [0, 153, 0]
+  },
+  "reference_baseline": {
+    "input_image": "source/src/sample_padding_image_for_inference/img_0814.jpg",
+    "input_dimensions": [650, 1250, 3],
+    "model_input_dimensions": [1, 3, 672, 1280],
+    "output_shape": [1, 5, 672, 1280],
+    "final_mask_dimensions": [650, 1250, 3],
+    "preprocessing": "Reference verbatim (src/app.py): ImagePadder anchor img_0814.jpg -> pad to 672x1280 -> /255 -> -mean(0.5185) -> /std(0.197) -> NCHW -> argmax -> crop [11:661,15:1265].",
+    "inference_time_s": 1.3812,
+    "timing_method": "forward+softmax+argmax on CPU, one warmup pass excluded",
+    "pixel_counts": {"sea_surface": 812141, "oil_spill": 309, "oil_spill_look_alike": 5, "ship": 45, "land": 0},
+    "total_pixels": 812500,
+    "spatial_coherence": {
+      "oil_spill": "309px in 1 connected component, bbox (192,306,32x23) — aligned with the dark feature on the left of the input",
+      "ship": "45px in 1 compact component, bbox (930,262,8x6) — aligned with the bright point on the right (SAR ship signature)",
+      "oil_spill_look_alike": "5px in 1 component, bbox (1156,546,3x2) — faint bottom-right mark",
+      "land": "0px — correct, open-ocean scene"
+    },
+    "plausibility_gate": "PASSED",
+    "verdict": "Plausible 5-class segmentation. 99.96% sea_surface is correct for a genuinely open-ocean scene; minority classes are single coherent components at real image features, not noise."
+  },
+  "offline_verification": {
+    "baseline_inference_offline": "PASS — re-ran with HTTP(S)_PROXY forced to a dead address (127.0.0.1:9) + HF_HUB_OFFLINE=1 + empty TORCH_HOME; identical output (oil 309, ship 45, sea 99.9558%).",
+    "network_dependency": "None in the inference path (pretrained=False avoids torchvision hub download; weights/image/stats are local files).",
+    "external_downloads_during_setup": [
+      "git clone HTSM_Oil_Spill_Segmentation (source code)",
+      "HF Space weights oil_spill_seg_resnet_50_deeplab_v3+_80.pt (167,546,333 bytes)",
+      "pip: torch/torchvision (CPU), scikit-image, matplotlib"
+    ]
+  },
+  "sentinel1_real_scene": {
+    "status": "NOT PERFORMED — BLOCKED",
+    "reason": "No Sentinel-1 GRD .SAFE product was provided (the task's input field was left as the placeholder '<paste your .SAFE product name here>'). Phases 2-4 require a real product and cannot be run without one. Not fabricating a real-scene result."
+  },
+  "deviations": [
+    {
+      "component": "encoder pretrained weights",
+      "author_implementation": "ResNet50DeepLabV3Plus(num_classes=5, pretrained=True) -> downloads torchvision ImageNet ResNet-50 weights for the encoder",
+      "our_implementation": "pretrained=False",
+      "reason": "Encoder weights are fully overwritten by load_state_dict of the trained checkpoint; pretrained=True only adds a network download.",
+      "expected_impact": "None on inference output (weights replaced). Verified numerically identical to expectation; removes a network dependency."
+    },
+    {
+      "component": "torch.load weights_only",
+      "author_implementation": "torch.load(file_weights, map_location=device)  (torch 1.12 default weights_only=False)",
+      "our_implementation": "weights_only=True first, fall back to False",
+      "reason": "torch 2.14 changed the default; checkpoint is a pure state_dict.",
+      "expected_impact": "None (loaded with weights_only=True successfully)."
+    },
+    {
+      "component": "torch / torchvision version",
+      "author_implementation": "torch==1.12.1+cu113, torchvision==0.13.1+cu113 (CUDA)",
+      "our_implementation": "torch 2.14.0+cpu, torchvision 0.29.0+cpu",
+      "reason": "No Python-3.13 / CPU wheels for the pinned CUDA versions; CPU-only environment.",
+      "expected_impact": "Low. Repo modules import and the model builds unchanged; state_dict is version-agnostic. Not asserted bit-identical to the authors' CUDA run."
+    }
+  ],
+  "backend_app_touched": false,
+  "backend_app_imported": false
+}

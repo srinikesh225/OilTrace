@@ -1,0 +1,19 @@
+# Model weights — never commit (167 MB, fetched during setup from the HF Space)
+weights/
+*.pt
+*.pth
+
+# Sentinel-1 products and archives
+*.SAFE/
+*.safe/
+*.zip
+*.tar
+*.tar.gz
+data/
+
+# Cloned upstream source (reproduce with: git clone <repo> source)
+source/
+
+# caches
+__pycache__/
+.torch_home_empty/

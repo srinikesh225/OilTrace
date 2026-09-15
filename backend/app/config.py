@@ -149,3 +149,30 @@ def available_scenes() -> list[str]:
 # Backend listening port. The container/host sets PORT; default 8000 locally.
 def port() -> int:
     return int(os.getenv("PORT", "8000"))
+
+
+# --- Segmentation backend selection -----------------------------------------
+# The detector (stage SEE) can run the original fixed-threshold Segmenter or a
+# learned model (ResNet50 DeepLabV3+) behind the same interface. Threshold is
+# the default so the existing demo needs no model weights.
+SEGMENTER_BACKEND = os.getenv("SEGMENTER_BACKEND", "threshold")   # "threshold" | "model"
+
+# Softmax class index the model treats as oil_spill (do not change).
+OIL_CLASS_INDEX = 1
+# Softmax class index for oil_spill_look_alike (returned separately).
+LOOKALIKE_CLASS_INDEX = 2
+
+# A pixel joins the oil mask when its class-1 (oil_spill) softmax probability is
+# >= this. 0.5 is a neutral, untuned confidence cut (a pixel is "oil" when the
+# model is at least 50% confident of the oil class). It was NOT tuned on any
+# evaluation set — there is no held-out labelled test set for this model — so it
+# introduces no train/test leakage. Override with OIL_PROB_THRESHOLD.
+OIL_PROB_THRESHOLD = float(os.getenv("OIL_PROB_THRESHOLD", "0.5"))
+
+# Path to the pretrained checkpoint. Defaults to the isolated model-evaluation
+# location; never assumed to be committed to git. Override with MODEL_WEIGHTS_PATH.
+MODEL_WEIGHTS_PATH = os.getenv(
+    "MODEL_WEIGHTS_PATH",
+    str(BACKEND_DIR.parent / "scratch" / "model_eval" / "weights"
+        / "oil_spill_seg_resnet_50_deeplab_v3+_80.pt"),
+)

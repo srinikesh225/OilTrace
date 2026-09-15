@@ -30,7 +30,7 @@ from .stages import filter as filter_stage
 from .stages import name as name_stage
 from .stages import rewind as rewind_stage
 from .stages.name import FileShipSource
-from .stages.see import Segmenter
+from .stages.segmenters import make_segmenter
 
 app = FastAPI(
     title="OILTRACE",
@@ -58,6 +58,17 @@ _LAST_RESULT: dict | None = None
 _EVIDENCE: dict[str, dict] = {}
 _PIPELINE_LOCK = threading.Lock()
 
+# The segmenter is built once and reused so the model backend loads its weights
+# a single time (not per request). Chosen by config.SEGMENTER_BACKEND.
+_SEGMENTER = None
+
+
+def _get_segmenter():
+    global _SEGMENTER
+    if _SEGMENTER is None:
+        _SEGMENTER = make_segmenter()
+    return _SEGMENTER
+
 
 class AnalyzeRequest(BaseModel):
     """Optional body for POST /analyze. Restricting `scene` to the known names
@@ -77,8 +88,8 @@ def run_pipeline(scene_name: str = config.DEFAULT_SCENE) -> tuple[AnalyzeRespons
     wind_samples = _load_json(paths["wind"])
     ship_source = FileShipSource(paths["ships"])
 
-    # 1. SEE — detect slick polygons.
-    segmenter = Segmenter()
+    # 1. SEE — detect slick polygons (threshold or model backend).
+    segmenter = _get_segmenter()
     see_out, see_rejections = segmenter.segment(scene.scene_id, paths["tif"])
 
     # 2. FILTER — wind gate.

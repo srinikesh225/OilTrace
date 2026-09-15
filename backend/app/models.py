@@ -53,6 +53,10 @@ class SlickPolygon(BaseModel):
 class SeeOutput(BaseModel):
     scene_id: str
     polygons: list[SlickPolygon]
+    # Model segmenter only: regions classified as oil_spill_look_alike (class 2),
+    # kept separate from the oil polygons above and never fed into them. The
+    # threshold segmenter leaves this empty, so its output is unchanged.
+    look_alike_polygons: list[SlickPolygon] = Field(default_factory=list)
 
 
 # --- Stage 2: filter (wind gate) --------------------------------------------

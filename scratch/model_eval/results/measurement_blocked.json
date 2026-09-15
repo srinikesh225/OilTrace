@@ -1,0 +1,28 @@
+{
+  "status": "NO VALID HELD-OUT LABELLED TEST SET AVAILABLE",
+  "oil_iou": null,
+  "oil_precision": null,
+  "oil_recall": null,
+  "overall_pixel_accuracy": null,
+  "class_balance": null,
+  "num_images": 0,
+  "reason": "No (input image, 5-class ground-truth mask) pairs are available. The labelled oil-spill dataset is gated and not bundled; the only images in the repo are the authors' predicted masks (not ground truth) plus one unlabelled sample input (img_0814.jpg). Using the authors' predicted masks as 'labels' would be pseudo-ground-truth derived from the model itself, which is explicitly disallowed.",
+  "leakage_note": "Because no evaluation labels exist, no IoU/precision/recall is reported. OIL_PROB_THRESHOLD (0.5) was chosen as a neutral, untuned default and was NOT selected against any test set, so there is no train/test or threshold-selection leakage to report.",
+  "how_to_unblock": "Place a held-out labelled test set under scratch/model_eval/data/testset/{images,labels}/ (labels as 5-class index masks, 0..4) and re-run. This script then computes aggregate pixel-level TP/FP/FN for the oil_spill class (index 1) only.",
+  "repository_audit": {
+    "repo_images_dir": [
+      "pred_mask_img_0001.png",
+      "pred_mask_img_0007.png",
+      "pred_mask_img_0035.png",
+      "pred_mask_img_0054.png",
+      "pred_mask_img_0105.png"
+    ],
+    "repo_images_dir_nature": "model PREDICTIONS (pred_mask_*), NOT ground-truth labels",
+    "sample_inputs": [
+      "img_0814.jpg"
+    ],
+    "sample_inputs_have_labels": false,
+    "dataset_public": false,
+    "dataset_note": "The dataset (https://m4d.iti.gr/oil-spill-detection-dataset/) is gated/not public; the repo README states the original images are not uploaded, only their predictions."
+  }
+}
