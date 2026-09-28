@@ -15,6 +15,7 @@ same result.
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time
 from typing import Literal, Optional
@@ -31,6 +32,9 @@ from .stages import name as name_stage
 from .stages import rewind as rewind_stage
 from .stages.name import FileShipSource
 from .stages.segmenters import make_segmenter
+from .stages.wind_sources import make_wind_source
+
+logger = logging.getLogger("oiltrace")
 
 app = FastAPI(
     title="OILTRACE",
@@ -62,12 +66,24 @@ _PIPELINE_LOCK = threading.Lock()
 # a single time (not per request). Chosen by config.SEGMENTER_BACKEND.
 _SEGMENTER = None
 
+# The wind source is built once and reused. Chosen by config.WIND_SOURCE
+# ("file" default | "era5"). Behind the WindSource interface, so neither this
+# module nor filter.py/rewind.py knows whether wind is fixture or ERA5.
+_WIND_SOURCE = None
+
 
 def _get_segmenter():
     global _SEGMENTER
     if _SEGMENTER is None:
         _SEGMENTER = make_segmenter()
     return _SEGMENTER
+
+
+def _get_wind_source():
+    global _WIND_SOURCE
+    if _WIND_SOURCE is None:
+        _WIND_SOURCE = make_wind_source()
+    return _WIND_SOURCE
 
 
 class AnalyzeRequest(BaseModel):
@@ -85,7 +101,13 @@ def run_pipeline(scene_name: str = config.DEFAULT_SCENE) -> tuple[AnalyzeRespons
     """Run SEE -> FILTER -> REWIND -> NAME -> EXPLAIN on a named bundled scene."""
     paths = config.scene_paths(scene_name)  # validates the name; no arbitrary paths
     scene = SceneMeta(**_load_json(paths["meta"]))
-    wind_samples = _load_json(paths["wind"])
+    # Wind via the WindSource interface (file default | era5). The returned
+    # samples are the same list-of-dicts the pipeline always used, so filter.py
+    # and rewind.py are untouched. Provenance is logged (not injected into the
+    # scored response) so the fixture path stays byte-identical.
+    wind_source = _get_wind_source()
+    wind_samples = wind_source.fetch(scene, paths["wind"])
+    logger.info("wind provenance: %s", wind_source.provenance)
     ship_source = FileShipSource(paths["ships"])
 
     # 1. SEE — detect slick polygons (threshold or model backend).

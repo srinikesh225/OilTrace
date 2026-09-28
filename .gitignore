@@ -25,3 +25,8 @@ Thumbs.db
 
 # NOTE: backend/sample_data/ is intentionally NOT ignored — the generated
 # fixture is committed so the prototype runs offline out of the box.
+
+# ERA5 wind: never commit CDS credentials or downloaded NetCDF cache.
+.cdsapirc
+data/cache/
+*.nc

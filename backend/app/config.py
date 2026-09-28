@@ -176,3 +176,18 @@ MODEL_WEIGHTS_PATH = os.getenv(
     str(BACKEND_DIR.parent / "scratch" / "model_eval" / "weights"
         / "oil_spill_seg_resnet_50_deeplab_v3+_80.pt"),
 )
+
+# --- Wind source selection --------------------------------------------------
+# The FILTER (and REWIND) stages consume hourly wind samples. Those can come
+# from the bundled fixture (wind.json) or from real ERA5 10-m wind. "file" is
+# the default so the deployed demo needs no network, no CDS credentials, and no
+# ERA5 dependencies. "era5" is opt-in and falls back to file on any failure.
+WIND_SOURCE = os.getenv("WIND_SOURCE", "file")   # "file" | "era5"
+
+# ERA5 (Copernicus Climate Data Store) request parameters. Credentials are NOT
+# stored here — cdsapi reads the standard ~/.cdsapirc or CDSAPI_URL/CDSAPI_KEY.
+ERA5_DATASET = "reanalysis-era5-single-levels"
+ERA5_VARIABLES = ["10m_u_component_of_wind", "10m_v_component_of_wind"]
+# Local NetCDF cache (git-ignored). Never commit downloaded ERA5 files.
+ERA5_CACHE_DIR = os.getenv(
+    "ERA5_CACHE_DIR", str(BACKEND_DIR.parent / "data" / "cache" / "era5"))
