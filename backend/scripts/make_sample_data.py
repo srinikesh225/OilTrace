@@ -100,9 +100,12 @@ def build_scene_image(rng):
     # centroid sits at the centre of REGION_BOUNDS.
     cv2.line(img, (350, 650), (650, 350), color=40, thickness=40, lineType=cv2.LINE_AA)
 
-    # Two compact dark blobs — look-alikes small enough to be rejected on area.
-    cv2.circle(img, (200, 820), 16, color=55, thickness=-1)
-    cv2.circle(img, (830, 180), 15, color=50, thickness=-1)
+    # Two compact dark blobs — look-alikes. Deliberately keep these below
+    # MIN_SLICK_AREA_PX (currently 200 px) so the see-stage sub-threshold
+    # rejection path stays exercised. Radius 7 gives ~130 px contour areas,
+    # safely under 200. Revisit these sizes if MIN_SLICK_AREA_PX changes.
+    cv2.circle(img, (200, 820), 7, color=55, thickness=-1)
+    cv2.circle(img, (830, 180), 7, color=50, thickness=-1)
 
     transform = from_bounds(MIN_LON, MIN_LAT, MAX_LON, MAX_LAT, WIDTH, HEIGHT)
     return img, transform
