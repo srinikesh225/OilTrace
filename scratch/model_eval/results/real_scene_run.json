@@ -1,0 +1,140 @@
+{
+  "product_id": "S1C_IW_GRDH_1SDV_20260914T053126_20260914T053151_009439_012C67_22B7",
+  "scene_id": "S1C_IW_GRDH_20260914T053126_OCEAN01",
+  "tile": {
+    "name": "OCEAN_01",
+    "centre_lat": 58.1399,
+    "centre_lon": 10.4062,
+    "coast_distance_km": 45.0,
+    "top_left_row_col": [
+      0,
+      21840
+    ],
+    "size": [
+      650,
+      1250
+    ]
+  },
+  "bounds": {
+    "min_lat": 58.10199,
+    "min_lon": 10.292636,
+    "max_lat": 58.177807,
+    "max_lon": 10.520029
+  },
+  "acquired_at": "2026-09-14T05:31:26Z",
+  "preprocessing": {
+    "calibration": "sigma0 = DN^2 / sigmaNought_LUT^2 (ESA S1 LUT)",
+    "speckle": "Lee MMSE window 5 ENL 4.4",
+    "db_range": [
+      -30,
+      0
+    ],
+    "scaling": "linear dB->8bit",
+    "geoloc_rms_m": 3.1
+  },
+  "segmenter": "ModelSegmenter",
+  "model_weights": "oil_spill_seg_resnet_50_deeplab_v3+_80.pt",
+  "oil_prob_threshold": 0.5,
+  "min_slick_area_px": 200,
+  "wind": {
+    "source": "ERA5",
+    "cache": "MISS",
+    "dataset": "reanalysis-era5-single-levels",
+    "centre": {
+      "scene_centre_lat": 58.1399,
+      "scene_centre_lon": 10.4063,
+      "grid_lat": 58.25,
+      "grid_lon": 10.5
+    },
+    "at_scene_time": "2026-09-14T06:00:00Z",
+    "speed_ms": 2.46,
+    "dir_deg": 182.2,
+    "convention": "meteorological FROM"
+  },
+  "stages": {
+    "SEE": {
+      "oil_polygons": [
+        {
+          "id": "poly-2",
+          "area_px": 553.0,
+          "area_km2": 0.054,
+          "bearing_deg": 9.3
+        },
+        {
+          "id": "poly-4",
+          "area_px": 1924.0,
+          "area_km2": 0.189,
+          "bearing_deg": 27.8
+        },
+        {
+          "id": "poly-5",
+          "area_px": 7114.0,
+          "area_km2": 0.698,
+          "bearing_deg": 61.0
+        },
+        {
+          "id": "poly-7",
+          "area_px": 395.0,
+          "area_km2": 0.039,
+          "bearing_deg": 99.1
+        },
+        {
+          "id": "poly-8",
+          "area_px": 2947.0,
+          "area_km2": 0.289,
+          "bearing_deg": 23.7
+        },
+        {
+          "id": "poly-12",
+          "area_px": 1495.0,
+          "area_km2": 0.147,
+          "bearing_deg": 45.8
+        },
+        {
+          "id": "poly-13",
+          "area_px": 7054.0,
+          "area_km2": 0.692,
+          "bearing_deg": 61.6
+        }
+      ],
+      "look_alike_regions": 14,
+      "see_rejections": 6
+    },
+    "FILTER": {
+      "wind_min_ms": 3.0,
+      "wind_max_ms": 12.0,
+      "speed_ms": 2.46,
+      "decision": "REJECTED",
+      "accepted": 0,
+      "rejected": 7,
+      "reasons": [
+        "Wind 2.5 m/s is below the 3.0 m/s minimum \u2014 sea too calm, a dark patch here is not reliably oil.",
+        "Wind 2.5 m/s is below the 3.0 m/s minimum \u2014 sea too calm, a dark patch here is not reliably oil.",
+        "Wind 2.5 m/s is below the 3.0 m/s minimum \u2014 sea too calm, a dark patch here is not reliably oil.",
+        "Wind 2.5 m/s is below the 3.0 m/s minimum \u2014 sea too calm, a dark patch here is not reliably oil.",
+        "Wind 2.5 m/s is below the 3.0 m/s minimum \u2014 sea too calm, a dark patch here is not reliably oil.",
+        "Wind 2.5 m/s is below the 3.0 m/s minimum \u2014 sea too calm, a dark patch here is not reliably oil.",
+        "Wind 2.5 m/s is below the 3.0 m/s minimum \u2014 sea too calm, a dark patch here is not reliably oil."
+      ]
+    },
+    "REWIND": "did not run (gate rejected)",
+    "NAME": "did not run (gate rejected)",
+    "EXPLAIN": "did not run (gate rejected)"
+  },
+  "runtime_seconds": 89.53,
+  "see_model_seconds": 1.14,
+  "real_vs_synthetic": {
+    "real": [
+      "scene.tif pixels (Sentinel-1C VV, calibrated)",
+      "geo-transform (product GCPs)",
+      "acquisition timestamp + bounds",
+      "SEE segmentation (ResNet50 DeepLabV3+ on real SAR)",
+      "FILTER wind (ERA5 reanalysis)"
+    ],
+    "synthetic_or_na": [
+      "ships.json (synthetic vessels, not AIS)",
+      "wind.json fallback (unused if ERA5 ran)",
+      "REWIND/NAME/EXPLAIN did not run"
+    ]
+  }
+}
