@@ -1,0 +1,55 @@
+SENTINEL-1 GRD PREPROCESSING REPORT
+============================================================
+
+1. PRODUCT
+  SAFE:        S1C_IW_GRDH_1SDV_20260914T053126_20260914T053151_009439_012C67_22B7.SAFE
+  Source:      ZIP C:\Users\srini\Downloads\S1C_IW_GRDH_1SDV_20260914T053126_20260914T053151_009439_012C67_22B7.SAFE.zip
+  VV:          s1c-iw-grd-vv-20260914t053126-20260914t053151-009439-012c67-001.tiff
+  Calibration: calibration-s1c-iw-grd-vv-20260914t053126-20260914t053151-009439-012c67-001.xml
+  Pols:        VH, VV   (selected VV)
+  Dimensions:  16678 x 26731  (445.8 Mpx), dtype uint16
+  Geometry:    CRS None — GRD radar geometry (not geocoded)
+
+2. PIPELINE
+  Calibration:   sigma0 = DN^2 / sigmaNought_LUT^2 (ESA S1 LUT, bilinear)
+  Speckle:       Lee MMSE, window 5, ENL 4.4
+  dB:            10*log10(sigma0), invalid excluded
+  dB clip:       [-30.0, 0.0] (best of 4 runs)
+  8-bit scale:   linear clip->0..255
+  Land mask:     NOT AVAILABLE — GRD product is in radar geometry (CRS=None); a real land mask requires GCP geolocation + an external coastline (e.g. GSHHG) or Range-Doppler terrain correction. Not bundled offline. A valid-data (DN>0) mask IS applied; it is NOT a land mask.
+  Tile/crop:     full-res 650x1250 ocean tile @ row 640 col 14400
+
+3. HISTOGRAM COMPARISON (8-bit)
+  Metric    Reference  Sentinel-1
+  min            39.0         0.0
+  max           255.0       255.0
+  mean       205.1181    126.4759
+  std         30.3717     48.4789
+  p05           152.0        48.0
+  p50           207.0       143.0
+  p95           253.0       189.0
+  dataset anchor (dataset-wide): mean 132.22 std 50.23
+
+4. TUNING HISTORY
+  Run 1: dB[-30.0,0.0] — User/initial configuration.
+    8-bit mean 126.4759 std 48.4789 p50 143.0; vs ref-image 0/5, vs dataset-anchor 2/2; clipped lo 0.0% hi 0.16%
+  Run 2: dB[-25.0,-5.0] — Tighten to the VV ocean backscatter band (bright targets still saturate).
+    8-bit mean 126.0061 std 71.7139 p50 151.0; vs ref-image 0/5, vs dataset-anchor 1/2; clipped lo 3.07% hi 0.8%
+  Run 3: dB[-22.0,-6.0] — Centre on this scene's measured ocean dB p05..p95 spread.
+    8-bit mean 113.3388 std 83.6204 p50 141.0; vs ref-image 0/5, vs dataset-anchor 1/2; clipped lo 14.09% hi 1.38%
+  Run 4: dB[-20.0,0.0] — Alternative upper-anchored range (keep bright returns, lift ocean mid-tone).
+    8-bit mean 71.2471 std 60.5786 p50 88.0; vs ref-image 0/5, vs dataset-anchor 1/2; clipped lo 31.29% hi 0.16%
+
+5. VERDICT
+  SAME RANGE: PARTIALLY
+  vs single reference image img_0814 (mean 205): 0/5 tolerances met
+  vs dataset-wide anchor (mean 132 / std 50):    2/2 tolerances met
+  The MKLab dataset's exact dB->8-bit mapping is not published, and the concrete reference image (img_0814, mean 205) is far brighter than the dataset normalization anchor (mean 132). A single fully-defensible match tolerance therefore cannot be derived from the reference material alone.
+
+6. MODEL IMPLICATION
+  Model inference ran on the real preprocessed S1 tile: {'sea_surface': 249377, 'oil_spill': 775, 'oil_spill_look_alike': 0, 'ship': 0, 'land': 562348}
+  land fraction 69% — this tile is land-contaminated
+  (no land mask available offline), which confounds an ocean-only read.
+  Non-zero oil pixels (775) on REAL calibrated SAR, versus 0 on the synthetic bundled scenes — evidence that input domain /
+  preprocessing was a MATERIAL contributor to the original zero-detection.
+  Correctness is UNVERIFIED (no ground truth); land contamination inflates classes.

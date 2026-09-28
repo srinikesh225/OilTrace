@@ -1,0 +1,43 @@
+{
+  "measurement_date": "2026-09-24",
+  "what_this_is": "Accuracy of OILTRACE's OWN ModelSegmenter chain (not the reference argmax path), on the author's held-out test split.",
+  "test_set": {
+    "n_images": 110,
+    "source": "Krestenitis/MKLab M4D, standard held-out test split"
+  },
+  "note_on_convention": "All IoU values here are GLOBAL (pooled confusion matrix) so the three rows are directly comparable. The published 61.549% uses the per-image-mean convention; the equivalent global figure for the reference argmax path is 53.101%.",
+  "stepwise": {
+    "1_reference_argmax": {
+      "oil_iou_global": 0.53101,
+      "precision": 0.77517,
+      "recall": 0.62768,
+      "what": "argmax over 5 classes \u2014 the author's evaluation path"
+    },
+    "2_probability_threshold": {
+      "oil_iou_global": 0.53002,
+      "precision": 0.78262,
+      "recall": 0.62152,
+      "what": "oil_prob >= 0.5, as OILTRACE applies it"
+    },
+    "3_full_pipeline": {
+      "oil_iou_global": 0.49379,
+      "precision": 0.80346,
+      "recall": 0.56163,
+      "what": "threshold + MIN_SLICK_AREA_PX=1500 contour filter \u2014 what OILTRACE actually detects"
+    }
+  },
+  "cost_of_pipeline_config": {
+    "iou_lost_vs_argmax_points": 3.72,
+    "recall_lost_vs_argmax_points": 6.61,
+    "precision_gained_points": 2.83,
+    "contours_kept": 93,
+    "contours_dropped": 311,
+    "diagnosis": "The 0.5 probability threshold costs almost nothing (-0.1 IoU). Essentially all the loss comes from MIN_SLICK_AREA_PX=1500, which discards 311 of 404 detected regions. The smallest genuine oil region in this test set is 426 px, so the 1500 px floor is above real slicks."
+  },
+  "recommendation": "Lower MIN_SLICK_AREA_PX (a value near 400 px would admit the smallest real slick in the benchmark). This is a tunable operating point, not a model limitation.",
+  "rgb_channel_check": {
+    "images_where_channels_differ": 0,
+    "note": "0 of 110 \u2014 these SAR images are greyscale, so OILTRACE's single-band read plus 3-channel replication is equivalent to reading the full image."
+  },
+  "runtime_s": 211.0
+}

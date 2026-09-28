@@ -1,0 +1,65 @@
+{
+  "measurement_date": "2026-09-24",
+  "what_this_is": "First independent accuracy measurement of the OILTRACE segmentation model, on the author's own held-out test split.",
+  "model": "ResNet50 DeepLabV3+ (Satyanarayana & Dhali, ICPRAM 2025), MIT licensed",
+  "weights_sha_name": "oil_spill_seg_resnet_50_deeplab_v3+_80.pt",
+  "test_set": {
+    "n_images": 110,
+    "source": "Krestenitis/MKLab M4D oil spill dataset, standard 1002/110 split",
+    "provenance_note": "Obtained via a public Kaggle mirror; formal request to the authors (MKLab/CERTH) is pending via supervisor.",
+    "leakage_check": "Author trained on the 1002-image train split (951/51 train/val). These 110 test images were held out. No leakage."
+  },
+  "preprocessing": "Author's exact path: img_0814.jpg anchor padding (650x1250 -> 672x1280), ToTensor, Normalize(mean=0.5185, std=0.197).",
+  "headline": {
+    "oil_spill_IoU_percent": 61.545,
+    "oil_precision_percent": 77.488,
+    "oil_recall_percent": 62.768,
+    "images_containing_oil": 88,
+    "overall_pixel_accuracy_percent": 96.978
+  },
+  "per_class_IoU_percent": {
+    "sea_surface": {
+      "measured": 96.422,
+      "published": 96.422,
+      "delta": 0.0
+    },
+    "oil_spill": {
+      "measured": 61.545,
+      "published": 61.549,
+      "delta": -0.004
+    },
+    "oil_spill_look_alike": {
+      "measured": 40.773,
+      "published": 40.773,
+      "delta": -0.0
+    },
+    "ship": {
+      "measured": 32.425,
+      "published": 33.378,
+      "delta": -0.953
+    },
+    "land": {
+      "measured": 82.679,
+      "published": 92.218,
+      "delta": -9.539
+    }
+  },
+  "land_correction": {
+    "issue": "3 of 110 mirror masks carry 5/23/39 stray land pixels from compression artefacts, not real annotation.",
+    "land_IoU_all_29_images_with_any_land_px": 82.679,
+    "land_IoU_26_images_with_>=100_land_px": 92.219,
+    "published": 92.218
+  },
+  "imbalance_baselines": {
+    "oil_share_of_test_pixels_percent": 1.0692,
+    "accuracy_of_always_predicting_not_oil_percent": 98.93,
+    "pixel_accuracy_of_predicting_sea_everywhere_percent": 90.516,
+    "note": "This is why pixel accuracy is the wrong metric. A detector that finds nothing scores 98.9%."
+  },
+  "global_vs_per_image": {
+    "oil_IoU_per_image_mean_percent": 61.545,
+    "oil_IoU_global_dataset_percent": 53.088,
+    "note": "Per-image mean is the author's method and the published convention. Global (pooled confusion matrix) is stricter."
+  },
+  "verdict": "Independent reproduction of the published result. 3 of 5 classes match to <=0.005 points; land matches to 0.001 once mirror mask artefacts are excluded; ship is 0.95 points low, likely the same artefact effect on very small regions."
+}

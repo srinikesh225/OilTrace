@@ -1,0 +1,40 @@
+OPEN-OCEAN MODEL AUDIT
+============================================================
+
+1. PRODUCT
+  product: S1C_IW_GRDH_1SDV_20260914T053126_20260914T053151_009439_012C67_22B7.SAFE
+  Sentinel-1C IW GRDH, VV; dims 16678x26731; 210 GCPs
+  extent: lat 56.308..58.228, lon 9.277..14.144
+
+2. GEOLOCATION (RegularGridInterpolator on the 10x21 GCP grid; ROUGH, ~<1km)
+  top-left      57.7947 N  14.1441 E
+  top-right     58.2277 N  9.6983 E
+  bottom-left   56.3080 N  13.5481 E
+  bottom-right  56.7354 N  9.2771 E
+  GCP round-trip error: mean 0.000 km, max 0.000 km
+
+3. TILE LOCATIONS (selected by GCP+GSHHG only; model NOT used)
+  Tile         Row    Col       Lat      Lon  Coast_km
+  OCEAN_01     325  22465   58.1399  10.4062     45.0 
+  OCEAN_02     325  23679    58.157  10.2025     45.0+
+  OCEAN_03     325  24892   58.1738   9.9988     45.0+
+
+4. MODEL RESULTS (argmax 5-class pixel counts / %)
+  Tile            sea     oil    look   ship     land
+  OCEAN_01     729511   27288   55701      0        0
+     %          89.79    3.36    6.86    0.0      0.0
+  OCEAN_02     812500       0       0      0        0
+     %          100.0     0.0     0.0    0.0      0.0
+  OCEAN_03     812500       0       0      0        0
+     %          100.0     0.0     0.0    0.0      0.0
+  Reference    812141     309       5     45        0
+  (reference control sane: True;  land components/oil components reported in JSON)
+
+5. PREVIOUS TILE (row640 col14400)
+  centre 57.9708 N 11.6301 E; is_land(centre)=True; coast 0.0 km
+  model land 69.21%  oil 0.1%  sea 30.69%
+
+6. VERDICT
+  TASK 4 VERDICT: (a) open ocean is classified as sea (earlier 69% tile was near/at land)
+  Sensible segmentation on verified open ocean? YES
+  3/3 verified open-ocean tiles are majority sea_surface with low land; the earlier 69%-land tile centre is 69.21% land and sits ON land.

@@ -14,6 +14,9 @@ data/
 # Cloned upstream source (reproduce with: git clone <repo> source)
 source/
 
+# Generated preprocessing outputs (figures, extracted SAFE metadata, tiles)
+out/
+
 # caches
 __pycache__/
 .torch_home_empty/

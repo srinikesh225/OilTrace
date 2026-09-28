@@ -1,0 +1,231 @@
+{
+  "real_era5": {
+    "status": "UNVERIFIED",
+    "reason": "Exception: Missing/incomplete configuration file: C:\\Users\\srini/.cdsapirc",
+    "has_creds": false
+  },
+  "tests": {
+    "A_missing_credentials": {
+      "pass": true,
+      "provenance": {
+        "source": "FILE_FALLBACK",
+        "reason": "Exception: Missing/incomplete configuration file: C:\\Users\\srini/.cdsapirc",
+        "fallback_file": "C:\\Users\\srini\\OneDrive\\Desktop\\SIH\\oiltrace\\backend\\sample_data\\scene_normal\\wind.json",
+        "cache": "n/a",
+        "n_samples": 25
+      }
+    },
+    "B_api_unreachable": {
+      "pass": true,
+      "simulated": true,
+      "provenance": {
+        "source": "FILE_FALLBACK",
+        "reason": "ConnectionError: simulated: CDS endpoint unreachable",
+        "fallback_file": "C:\\Users\\srini\\OneDrive\\Desktop\\SIH\\oiltrace\\backend\\sample_data\\scene_normal\\wind.json",
+        "cache": "n/a",
+        "n_samples": 25
+      }
+    },
+    "C_valid_request_codepath": {
+      "pass": true,
+      "synthetic": true,
+      "provenance": {
+        "source": "ERA5",
+        "dataset": "reanalysis-era5-single-levels",
+        "variables": [
+          "10m_u_component_of_wind",
+          "10m_v_component_of_wind"
+        ],
+        "area_NWSE": [
+          58.23,
+          9.28,
+          56.31,
+          14.14
+        ],
+        "spatial_method": "nearest grid point to scene centre",
+        "direction_convention": "meteorological FROM (0=N,90=E)",
+        "units": "m/s",
+        "cache": "MISS",
+        "cache_file": "C:\\Users\\srini\\OneDrive\\Desktop\\SIH\\oiltrace\\scratch\\model_eval\\out\\era5_cache_test_C\\era5_a448e817274d84d2.nc",
+        "centre": {
+          "scene_centre_lat": 57.2679,
+          "scene_centre_lon": 11.7106,
+          "grid_lat": 57.23,
+          "grid_lon": 11.78
+        },
+        "n_samples": 14
+      }
+    },
+    "D_cache_hit": {
+      "pass": true,
+      "provenance": {
+        "source": "ERA5",
+        "dataset": "reanalysis-era5-single-levels",
+        "variables": [
+          "10m_u_component_of_wind",
+          "10m_v_component_of_wind"
+        ],
+        "area_NWSE": [
+          58.23,
+          9.28,
+          56.31,
+          14.14
+        ],
+        "spatial_method": "nearest grid point to scene centre",
+        "direction_convention": "meteorological FROM (0=N,90=E)",
+        "units": "m/s",
+        "cache": "HIT",
+        "cache_file": "C:\\Users\\srini\\OneDrive\\Desktop\\SIH\\oiltrace\\scratch\\model_eval\\out\\era5_cache_test_C\\era5_a448e817274d84d2.nc",
+        "centre": {
+          "scene_centre_lat": 57.2679,
+          "scene_centre_lon": 11.7106,
+          "grid_lat": 57.23,
+          "grid_lon": 11.78
+        },
+        "n_samples": 14
+      }
+    }
+  },
+  "notes": [],
+  "scene": {
+    "id": "S1C_REAL_20260914T0531",
+    "acquired_at": "2026-09-14T05:31:26Z",
+    "bounds_NWSE": [
+      58.22770534285784,
+      9.277136364058144,
+      56.30803154402193,
+      14.14407476810633
+    ],
+    "slick_age_hours": 12,
+    "window": [
+      "2026-09-13T17:00Z",
+      "2026-09-14T06:00Z"
+    ]
+  },
+  "hourly_series_synthetic": [
+    {
+      "time": "2026-09-13T17:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-13T18:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-13T19:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-13T20:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-13T21:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-13T22:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-13T23:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-14T00:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-14T01:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-14T02:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-14T03:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-14T04:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-14T05:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    },
+    {
+      "time": "2026-09-14T06:00:00Z",
+      "speed_ms": 6.4,
+      "dir_deg": 51.3,
+      "u_ms": -5.0,
+      "v_ms": -4.0
+    }
+  ],
+  "gate_synthetic": {
+    "wind_time": "2026-09-14T06:00:00Z",
+    "speed_ms": 6.4,
+    "dir_deg": 51.3,
+    "decision": "ACCEPTED",
+    "exact_reason": null,
+    "WIND_MIN_MS": 3.0,
+    "WIND_MAX_MS": 12.0
+  },
+  "sanity": {
+    "speed_ms": 6.4,
+    "plausible_le_30": true,
+    "basis": "Skagerrak mid-Sept 10-m wind typically ~2-15 m/s; >30 m/s would indicate a unit/component bug. NOTE: this magnitude is from the SYNTHETIC test field, not real ERA5."
+  },
+  "hygiene": {
+    ".cdsapirc": true,
+    "data/cache/": true,
+    "sample.nc": true
+  },
+  "summary": {
+    "real_era5": "UNVERIFIED",
+    "fixture_byte_identity": "PASS (verified separately: SHA256 match all 3 scenes)",
+    "fallback": "PASS",
+    "era5_cache": "PASS",
+    "credential_safety": "PASS"
+  }
+}

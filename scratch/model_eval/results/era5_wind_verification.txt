@@ -1,0 +1,78 @@
+ERA5 WIND INTEGRATION — VERIFICATION REPORT
+============================================================
+
+1. IMPLEMENTATION
+  WindSource interface : backend/app/stages/wind_sources/__init__.py
+                         fetch(scene, wind_path) -> list[{time,speed_ms,dir_deg,...}]
+                         + self.provenance (dict). make_wind_source() picks by config.
+  FileWindSource       : backend/app/stages/wind_sources/file_source.py
+                         identical to old _load_json(wind.json) — byte-identical path.
+  ERA5WindSource       : backend/app/stages/wind_sources/era5_source.py
+                         cdsapi retrieve of 10m u/v from reanalysis-era5-single-levels;
+                         sigma-free: speed=sqrt(u^2+v^2), dir=atan2(-u,-v) (meteorological FROM);
+                         lazy imports (cdsapi/xarray) so file mode needs neither.
+  Configuration        : config.WIND_SOURCE ("file" default | "era5");
+                         ERA5_DATASET, ERA5_VARIABLES, ERA5_CACHE_DIR. main.py uses the source
+                         and LOGS provenance (not injected into the scored response).
+  Cache                : <repo>/data/cache/era5/era5_<key>.nc; key = sha256(dataset, area N/W/S/E,
+                         hourly timestamps, variables). Validated (readable, u/v/lat/lon/time vars,
+                         time-range covered) before reuse; corrupt cache discarded + re-fetched.
+  Fallback             : ERA5 failure (no creds / unreachable / corrupt) -> FileWindSource with
+                         provenance source="FILE_FALLBACK" and reason logged. Never crashes;
+                         never presents fixture wind as ERA5.
+
+2. REAL ERA5 RESULT
+  Scene            : S1C_REAL_20260914T0531 (real Sentinel-1C IW GRDH)
+  Centre           : 57.2679 N, 11.7106 E
+  Scene timestamp  : 2026-09-14T05:31:26Z (UTC, from product annotation adsHeader/startTime)
+  Drift window     : 2026-09-13T17:00Z .. 2026-09-14T06:00Z (SLICK_AGE_HOURS=12; 14 hourly steps)
+  STATUS           : UNVERIFIED — no CDS credentials on this machine (~/.cdsapirc absent,
+                     CDSAPI_URL/KEY unset). cdsapi.Client() raised immediately; source fell back.
+                     No real ERA5 u/v/speed/direction can be reported. NOT fabricated.
+
+  Code-path values below are from a SYNTHETIC NetCDF (fixed field u=-5, v=-4), used ONLY to
+  verify extraction/conversion/cache/gate. They are NOT real ERA5 wind:
+    u = -5.0 m/s, v = -4.0 m/s -> speed = 6.40 m/s, dir = 51.3 deg (meteorological FROM), units m/s
+
+3. HOURLY SERIES (SYNTHETIC code-test; real series requires credentials)
+  14 hourly steps 2026-09-13T17:00Z..2026-09-14T06:00Z, each u=-5.0 v=-4.0 speed=6.40 dir=51.3.
+  (full table in era5_wind_verification.json -> hourly_series_synthetic)
+
+4. FILTER RESULT (UNMODIFIED backend/app/stages/filter.py)
+  WIND_MIN_MS : 3.0
+  WIND_MAX_MS : 12.0
+  wind_at_scene: 2026-09-14T06:00:00Z (nearest ERA5 hour to 05:31:26 — 29 min vs 31 min to 05:00)
+  ERA5 speed  : 6.40 m/s (SYNTHETIC)
+  Gate        : ACCEPTED
+  Exact reason string: None  (accepted -> no rejection reason)
+  (The rejection-string path is exercised by the 'calm' fixture, whose exact string is
+   "Wind 1.8 m/s is below the 3.0 m/s minimum - sea too calm, a dark patch here is not
+   reliably oil." — captured byte-identically in the fixture regression.)
+
+5. SANITY CHECK
+  PHYSICALLY PLAUSIBLE: UNVERIFIED for real ERA5 (not retrieved).
+  Basis: Skagerrak/Kattegat 10-m wind in mid-September is typically ~2-15 m/s; a value
+  >30 m/s would flag a units (knots vs m/s) or u/v bug. The synthetic test value 6.40 m/s is
+  within band; the conversion math is verified (sqrt(25+16)=6.40; atan2(5,4)=51.3 deg).
+
+6. FIXTURE REGRESSION (WIND_SOURCE=file, before vs after the interface)
+  Scene      Before SHA256                                                     After SHA256     Byte-identical
+  normal     1e83fa2e8c23aeecc480c2262a4a4482702b8961ee56c9546fcc51b7d5d25978  (same)           YES
+  ambiguous  f98eb8ea557cd581722b8bdb6fa29dc9b8db5bf698edffc8f92d0538b286e1d6  (same)           YES
+  calm       40b30cb7200b97891db9252d30d2c6182bf967a1f5f5cc241e82f8da4ff26144  (same)           YES
+  (response AND evidence-bundle SHA256 identical for all three scenes.)
+
+7. FALLBACK TESTS
+  A missing credentials   : PASS -> FILE_FALLBACK, pipeline continues
+  B API unreachable (sim) : PASS -> FILE_FALLBACK, pipeline continues
+  C valid request codepath: PASS -> source=ERA5, cache=MISS, 1 download (SYNTHETIC NetCDF)
+  D repeat request        : PASS -> cache=HIT, 0 downloads
+
+8. GIT / DATA HYGIENE
+  Commit before : 5f8291e6e3048ecf2855da6c19926da93b2ee56a
+  Commit after  : 5f8291e (unchanged; nothing committed)
+  Files modified: .gitignore, backend/app/config.py, backend/app/main.py, scratch/model_eval/.gitignore
+  Files added   : backend/app/stages/wind_sources/{__init__,file_source,era5_source}.py
+  Credential path ignored: .cdsapirc -> git check-ignore = YES
+  NetCDF cache ignored   : data/cache/*.nc and *.nc -> YES
+  SAFE/ZIP tracked       : NO

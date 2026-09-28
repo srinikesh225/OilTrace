@@ -1,0 +1,228 @@
+{
+  "frozen": {
+    "db_min": -30.0,
+    "db_max": 0.0,
+    "lee_window": 5,
+    "enl": 4.4,
+    "oil_class_index": 1,
+    "oil_prob_threshold": 0.5,
+    "device": "cpu"
+  },
+  "backend_app_files_read": [
+    "backend/app/stages/segmenters/model_segmenter.py",
+    "backend/app/config.py"
+  ],
+  "coastline_dataset": "global_land_mask 1.0.0 (GSHHG-derived ~1km land grid)",
+  "tiles": [
+    {
+      "row": 325,
+      "col": 22465,
+      "lat": 58.1399,
+      "lon": 10.4062,
+      "coast_km": 45.0,
+      "capped": false,
+      "id": "OCEAN_01"
+    },
+    {
+      "row": 325,
+      "col": 23679,
+      "lat": 58.157,
+      "lon": 10.2025,
+      "coast_km": 45.0,
+      "capped": true,
+      "id": "OCEAN_02"
+    },
+    {
+      "row": 325,
+      "col": 24892,
+      "lat": 58.1738,
+      "lon": 9.9988,
+      "coast_km": 45.0,
+      "capped": true,
+      "id": "OCEAN_03"
+    }
+  ],
+  "control": {
+    "image": "C:\\Users\\srini\\OneDrive\\Desktop\\SIH\\oiltrace\\scratch\\model_eval\\source\\src\\sample_padding_image_for_inference\\img_0814.jpg",
+    "dims": [
+      650,
+      1250
+    ],
+    "counts": {
+      "sea_surface": 812141,
+      "oil_spill": 309,
+      "oil_spill_look_alike": 5,
+      "ship": 45,
+      "land": 0
+    },
+    "pct": {
+      "sea_surface": 99.956,
+      "oil_spill": 0.038,
+      "oil_spill_look_alike": 0.001,
+      "ship": 0.006,
+      "land": 0.0
+    }
+  },
+  "previous_tile": {
+    "row": 640,
+    "col": 14400,
+    "centre_lat": 57.9708,
+    "centre_lon": 11.6301,
+    "coast_km": 0.0,
+    "is_land_centre": true,
+    "counts": {
+      "sea_surface": 249377,
+      "oil_spill": 775,
+      "oil_spill_look_alike": 0,
+      "ship": 0,
+      "land": 562348
+    },
+    "pct": {
+      "sea_surface": 30.69,
+      "oil_spill": 0.1,
+      "oil_spill_look_alike": 0.0,
+      "ship": 0.0,
+      "land": 69.21
+    }
+  },
+  "control_sane": true,
+  "verdict": {
+    "task4": "(a) open ocean is classified as sea (earlier 69% tile was near/at land)",
+    "open_ocean_segmentation_sensible": "YES",
+    "explanation": "3/3 verified open-ocean tiles are majority sea_surface with low land; the earlier 69%-land tile centre is 69.21% land and sits ON land.",
+    "land_pcts": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "sea_pcts": [
+      89.79,
+      100.0,
+      100.0
+    ]
+  },
+  "results": [
+    {
+      "row": 325,
+      "col": 22465,
+      "lat": 58.1399,
+      "lon": 10.4062,
+      "coast_km": 45.0,
+      "capped": false,
+      "id": "OCEAN_01",
+      "counts": {
+        "sea_surface": 729511,
+        "oil_spill": 27288,
+        "oil_spill_look_alike": 55701,
+        "ship": 0,
+        "land": 0
+      },
+      "pct": {
+        "sea_surface": 89.79,
+        "oil_spill": 3.36,
+        "oil_spill_look_alike": 6.86,
+        "ship": 0.0,
+        "land": 0.0
+      },
+      "total": 812500,
+      "sum_ok": true,
+      "oil_thr_pixels": 22763,
+      "look_thr_pixels": 53376,
+      "infer_s": 1.39,
+      "land_components": 0,
+      "land_largest": 0,
+      "oil_components": 9,
+      "oil_largest": 9200
+    },
+    {
+      "row": 325,
+      "col": 23679,
+      "lat": 58.157,
+      "lon": 10.2025,
+      "coast_km": 45.0,
+      "capped": true,
+      "id": "OCEAN_02",
+      "counts": {
+        "sea_surface": 812500,
+        "oil_spill": 0,
+        "oil_spill_look_alike": 0,
+        "ship": 0,
+        "land": 0
+      },
+      "pct": {
+        "sea_surface": 100.0,
+        "oil_spill": 0.0,
+        "oil_spill_look_alike": 0.0,
+        "ship": 0.0,
+        "land": 0.0
+      },
+      "total": 812500,
+      "sum_ok": true,
+      "oil_thr_pixels": 0,
+      "look_thr_pixels": 0,
+      "infer_s": 1.18,
+      "land_components": 0,
+      "land_largest": 0,
+      "oil_components": 0,
+      "oil_largest": 0
+    },
+    {
+      "row": 325,
+      "col": 24892,
+      "lat": 58.1738,
+      "lon": 9.9988,
+      "coast_km": 45.0,
+      "capped": true,
+      "id": "OCEAN_03",
+      "counts": {
+        "sea_surface": 812500,
+        "oil_spill": 0,
+        "oil_spill_look_alike": 0,
+        "ship": 0,
+        "land": 0
+      },
+      "pct": {
+        "sea_surface": 100.0,
+        "oil_spill": 0.0,
+        "oil_spill_look_alike": 0.0,
+        "ship": 0.0,
+        "land": 0.0
+      },
+      "total": 812500,
+      "sum_ok": true,
+      "oil_thr_pixels": 0,
+      "look_thr_pixels": 0,
+      "infer_s": 1.34,
+      "land_components": 0,
+      "land_largest": 0,
+      "oil_components": 0,
+      "oil_largest": 0
+    }
+  ],
+  "corners": {
+    "top-left": [
+      57.7947,
+      14.1441
+    ],
+    "top-right": [
+      58.2277,
+      9.6983
+    ],
+    "bottom-left": [
+      56.308,
+      13.5481
+    ],
+    "bottom-right": [
+      56.7354,
+      9.2771
+    ]
+  },
+  "gcp_roundtrip_km": {
+    "mean": 0.0,
+    "max": 0.0
+  },
+  "scene_dims": [
+    16678,
+    26731
+  ]
+}

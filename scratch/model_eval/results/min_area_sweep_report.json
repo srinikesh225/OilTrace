@@ -1,0 +1,106 @@
+{
+  "measurement_date": "2026-09-27",
+  "what_this_is": "Sweep of MIN_SLICK_AREA_PX on the 110-image held-out test split, oil class, global pooled IoU. Probability threshold fixed at 0.5.",
+  "n_test_images": 110,
+  "current_value": 1500,
+  "recommended_value": 200,
+  "table": [
+    {
+      "min_area_px": 0,
+      "oil_iou": 0.53021,
+      "precision": 0.78201,
+      "recall": 0.62216,
+      "f1": 0.69299,
+      "regions_kept": 404
+    },
+    {
+      "min_area_px": 100,
+      "oil_iou": 0.52996,
+      "precision": 0.78468,
+      "recall": 0.62014,
+      "f1": 0.69278,
+      "regions_kept": 232
+    },
+    {
+      "min_area_px": 200,
+      "oil_iou": 0.52993,
+      "precision": 0.78751,
+      "recall": 0.61835,
+      "f1": 0.69275,
+      "regions_kept": 204
+    },
+    {
+      "min_area_px": 300,
+      "oil_iou": 0.52915,
+      "precision": 0.7894,
+      "recall": 0.61613,
+      "f1": 0.69209,
+      "regions_kept": 188
+    },
+    {
+      "min_area_px": 400,
+      "oil_iou": 0.52646,
+      "precision": 0.79131,
+      "recall": 0.61134,
+      "f1": 0.68978,
+      "regions_kept": 169
+    },
+    {
+      "min_area_px": 600,
+      "oil_iou": 0.52189,
+      "precision": 0.79391,
+      "recall": 0.60368,
+      "f1": 0.68585,
+      "regions_kept": 148
+    },
+    {
+      "min_area_px": 800,
+      "oil_iou": 0.51585,
+      "precision": 0.79456,
+      "recall": 0.59524,
+      "f1": 0.68061,
+      "regions_kept": 134
+    },
+    {
+      "min_area_px": 1000,
+      "oil_iou": 0.50868,
+      "precision": 0.79862,
+      "recall": 0.58353,
+      "f1": 0.67434,
+      "regions_kept": 116
+    },
+    {
+      "min_area_px": 1500,
+      "oil_iou": 0.49379,
+      "precision": 0.80346,
+      "recall": 0.56163,
+      "f1": 0.66113,
+      "regions_kept": 93
+    },
+    {
+      "min_area_px": 2000,
+      "oil_iou": 0.48837,
+      "precision": 0.80808,
+      "recall": 0.55244,
+      "f1": 0.65625,
+      "regions_kept": 85
+    },
+    {
+      "min_area_px": 3000,
+      "oil_iou": 0.45683,
+      "precision": 0.80988,
+      "recall": 0.51171,
+      "f1": 0.62716,
+      "regions_kept": 66
+    }
+  ],
+  "why_200": "IoU is within 0.0003 of the unfiltered maximum (0.5299 vs 0.5302) while keeping only 204 regions instead of 404 \u2014 so it removes half the noise polygons at essentially no accuracy cost. Above 300 px the curve falls away steadily.",
+  "change_1500_to_200": {
+    "iou_gain_points": 3.61,
+    "recall_gain_points": 5.67,
+    "precision_cost_points": 1.59,
+    "regions_kept_before": 93,
+    "regions_kept_after": 204
+  },
+  "note": "Monotonic: every increase in the floor loses IoU. The smallest genuine oil region in this test set is 426 px, so a 1500 px floor discards real slicks by construction."
+}
