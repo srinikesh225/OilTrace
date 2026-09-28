@@ -177,6 +177,19 @@ class AnalyzeResponse(BaseModel):
     wind_at_scene: WindSample
     scene_name: str                     # which fixture ran: normal|ambiguous|calm
     evidence_id: str
-    data_source: str                    # e.g. SYNTHETIC_FIXTURE
+    data_source: str                    # e.g. SYNTHETIC_FIXTURE, or a real product id
     provenance_note: str                # plain-language "this is sample data"
     disclaimer: str = Field(...)
+    # --- Run provenance (additive) ------------------------------------------
+    # Which backends ACTUALLY ran, so a model->threshold or era5->fixture
+    # fallback is visible from the output, not just the server logs. Defaults
+    # keep older callers/serialisation working.
+    segmenter_backend: str = ""         # "model" | "threshold" (the one that ran)
+    segmenter_fallback: bool = False
+    segmenter_fallback_reason: Optional[str] = None
+    wind_source: str = ""               # "era5" | "file" (the one that ran)
+    wind_fallback: bool = False
+    wind_fallback_reason: Optional[str] = None
+    model_weights_id: Optional[str] = None      # checkpoint basename when model ran
+    oil_prob_threshold: Optional[float] = None  # when model ran
+    scene_bounds: Optional[Bounds] = None

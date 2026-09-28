@@ -100,7 +100,13 @@ def _load_json(path):
 def run_pipeline(scene_name: str = config.DEFAULT_SCENE) -> tuple[AnalyzeResponse, dict]:
     """Run SEE -> FILTER -> REWIND -> NAME -> EXPLAIN on a named bundled scene."""
     paths = config.scene_paths(scene_name)  # validates the name; no arbitrary paths
-    scene = SceneMeta(**_load_json(paths["meta"]))
+    meta_raw = _load_json(paths["meta"])
+    scene = SceneMeta(**meta_raw)  # extra keys (e.g. data_source) are ignored here
+    # Per-scene provenance override: a scene fixture may declare its own
+    # data_source / provenance_note (the real Sentinel-1 scene does). The three
+    # synthetic scenes declare neither, so they keep the global defaults unchanged.
+    scene_data_source = meta_raw.get("data_source", config.DATA_SOURCE)
+    scene_provenance = meta_raw.get("provenance_note", config.PROVENANCE_NOTE)
     # Wind via the WindSource interface (file default | era5). The returned
     # samples are the same list-of-dicts the pipeline always used, so filter.py
     # and rewind.py are untouched. Provenance is logged (not injected into the
@@ -147,6 +153,24 @@ def run_pipeline(scene_name: str = config.DEFAULT_SCENE) -> tuple[AnalyzeRespons
     ranked = explain_out.ranked_candidates if explain_out else []
     evidence_id = explain_out.evidence_id if explain_out else scene.scene_id
 
+    # Run provenance: what ACTUALLY ran, so a model->threshold or era5->fixture
+    # fallback is visible from the output (not only the server logs).
+    seg_prov = getattr(segmenter, "provenance", {}) or {}
+    wind_prov = getattr(wind_source, "provenance", {}) or {}
+    _wsrc = wind_prov.get("source")
+    _wind_fallback = (_wsrc == "FILE_FALLBACK")
+    prov = {
+        "segmenter_backend": seg_prov.get("segmenter_backend", "threshold"),
+        "segmenter_fallback": bool(seg_prov.get("segmenter_fallback", False)),
+        "segmenter_fallback_reason": seg_prov.get("segmenter_fallback_reason"),
+        "wind_source": ("era5" if _wsrc == "ERA5" else "file"),
+        "wind_fallback": _wind_fallback,
+        "wind_fallback_reason": (wind_prov.get("reason") if _wind_fallback else None),
+        "model_weights_id": seg_prov.get("model_weights_id"),
+        "oil_prob_threshold": seg_prov.get("oil_prob_threshold"),
+        "scene_bounds": scene.bounds.model_dump(),
+    }
+
     response = AnalyzeResponse(
         scene=scene,
         detected_slick=detected_slick,
@@ -161,9 +185,10 @@ def run_pipeline(scene_name: str = config.DEFAULT_SCENE) -> tuple[AnalyzeRespons
         wind_at_scene=filter_out.wind_at_scene,
         scene_name=scene_name,
         evidence_id=evidence_id,
-        data_source=config.DATA_SOURCE,
-        provenance_note=config.PROVENANCE_NOTE,
+        data_source=scene_data_source,
+        provenance_note=scene_provenance,
         disclaimer=config.DISCLAIMER,
+        **prov,
     )
 
     if evidence_bundle is None:
@@ -178,6 +203,14 @@ def run_pipeline(scene_name: str = config.DEFAULT_SCENE) -> tuple[AnalyzeRespons
             "rejections": [r.model_dump() for r in all_rejections],
             "disclaimer": config.DISCLAIMER,
         }
+
+    # Additive: record the per-scene data source and the actual run provenance in
+    # the evidence bundle too. For the three synthetic scenes these values equal
+    # the previous defaults, so their bundles are byte-identical apart from the
+    # new keys.
+    evidence_bundle["data_source"] = scene_data_source
+    evidence_bundle["provenance_note"] = scene_provenance
+    evidence_bundle.update(prov)
 
     return response, evidence_bundle
 

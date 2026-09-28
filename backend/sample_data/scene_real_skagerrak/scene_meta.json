@@ -8,5 +8,7 @@
     "max_lon": 10.520029
   },
   "provenance": "REAL Sentinel-1C OCEAN_01 tile; ships.json is SYNTHETIC.",
-  "geoloc_approx_rms_m": 3.1
+  "geoloc_approx_rms_m": 3.1,
+  "data_source": "REAL_SENTINEL1C:S1C_IW_GRDH_1SDV_20260914T053126_20260914T053151_009439_012C67_22B7 @2026-09-14T05:31:26Z",
+  "provenance_note": "Imagery, geolocation and acquisition timestamp are REAL: Sentinel-1C IW GRDH product S1C_IW_GRDH_1SDV_20260914T053126_20260914T053151_009439_012C67_22B7, acquired 2026-09-14T05:31:26Z (OCEAN_01 tile, VV, calibration+Lee speckle+dB[-30,0]). The vessel tracks in ships.json are SYNTHETIC (not real AIS)."
 }
