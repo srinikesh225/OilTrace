@@ -36,18 +36,55 @@ const LAND_STYLE = {
   interactive: false,
 };
 
-function FitToScene({ bounds }) {
+// Collect every rendered vector's lat/lon points: scene footprint, detected
+// slick, other detections, release area, all vessel tracks, and matched
+// candidate positions. The map is fit to the union of these so the useful
+// geometry fills the viewport instead of sitting tiny in the centre. Bounds are
+// derived only from result data (never from screen size or hardcoded coords).
+function collectLatLngs(data) {
+  const pts = [];
+  const b = data?.scene?.bounds;
+  if (b) {
+    pts.push([b.min_lat, b.min_lon], [b.max_lat, b.max_lon]);
+  }
+  const pushRing = (r) => r && r.forEach((p) => pts.push([p.lat, p.lon]));
+  if (data?.detected_slick) pushRing(data.detected_slick.boundary);
+  data?.other_detections?.forEach((o) => pushRing(o.boundary));
+  if (data?.release) pushRing(data.release.release_polygon);
+  data?.all_vessels?.forEach((v) =>
+    v.positions?.forEach((p) => pts.push([p.lat, p.lon]))
+  );
+  data?.ranked_candidates?.forEach((c) =>
+    c.matched_position &&
+    pts.push([c.matched_position.lat, c.matched_position.lon])
+  );
+  return pts;
+}
+
+// A stable signature so the fit re-runs whenever the displayed scene/result
+// changes (and only then), never reusing the previous scene's bounds.
+function sceneKey(data) {
+  return [
+    data?.scene?.scene_id,
+    data?.detected_slick?.polygon_id,
+    data?.release?.release_time,
+    data?.all_vessels?.length,
+    data?.ranked_candidates?.length,
+  ].join("|");
+}
+
+function FitToScene({ data }) {
   const map = useMap();
+  const key = sceneKey(data);
   useEffect(() => {
-    if (!bounds) return;
-    map.fitBounds(
-      [
-        [bounds.min_lat, bounds.min_lon],
-        [bounds.max_lat, bounds.max_lon],
-      ],
-      { padding: [24, 24] }
-    );
-  }, [bounds, map]);
+    if (!map) return;
+    const pts = collectLatLngs(data);
+    if (!pts.length) return;
+    // animate:false — the fit runs on every scene switch; animating it causes
+    // visible jank on mobile. maxZoom guards against over-zooming a tiny tile.
+    map.fitBounds(pts, { padding: [24, 24], animate: false, maxZoom: 12 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, map]);
   return null;
 }
 
@@ -66,7 +103,7 @@ export default function Map({ data, topMmsi, selectedMmsi, onSelect }) {
       zoomControl={true}
       style={{ height: "100%", width: "100%", background: "#0d2230" }}
     >
-      {b && <FitToScene bounds={b} />}
+      {data && <FitToScene data={data} />}
 
       {/* Land geography — bottom layer. A dedicated pane with a z-index below
           the overlay pane guarantees the land always sits beneath every

@@ -242,6 +242,45 @@ body {
   vertical-align: middle;
 }
 
+/* Collapse toggles — hidden on desktop; the mobile media query below turns them
+   on. Styles live here so only `display` changes at the breakpoint. */
+.legend-toggle {
+  display: none;
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 500;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* Provenance banner: desktop shows the full note inline (unchanged); the
+   compact line and Details toggle are mobile-only. The full note stays in the
+   DOM at all sizes. */
+.prov-compact,
+.prov-toggle {
+  display: none;
+}
+.prov-full {
+  display: inline;
+}
+.prov-toggle {
+  background: transparent;
+  border: 1px solid var(--flag-ink);
+  color: var(--flag-ink);
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 /* --- panels ---------------------------------------------------------- */
 .panel-col {
   border-left: 1px solid var(--line);
@@ -475,6 +514,55 @@ body {
   }
   .topbar {
     align-items: flex-start;
+  }
+}
+
+/* --- phones (< 768px) ------------------------------------------------- */
+/* Comes after the 900px block so it overrides the map height there. Desktop
+   (>= 768px, incl. 1280px) is untouched by everything in here. */
+@media (max-width: 767px) {
+  /* TASK 1 — cap the map so the ranked-candidates panel is near the fold.
+     dvh where supported avoids the mobile URL-bar height jump. */
+  .layout {
+    grid-template-rows: 45vh auto;
+    grid-template-rows: 45dvh auto;
+  }
+
+  /* TASK 4 — compact provenance banner; full note collapses behind Details but
+     stays in the DOM. */
+  .banner.provenance {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .prov-compact {
+    display: inline;
+  }
+  .prov-toggle {
+    display: inline-block;
+  }
+  .prov-full {
+    display: none;
+    flex-basis: 100%;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  .prov-full.open {
+    display: block;
+  }
+
+  /* TASK 3 — legend collapses behind a compact toggle so it no longer sits on
+     the map's dead space. Full legend returns when expanded. */
+  .legend-toggle {
+    display: inline-flex;
+  }
+  .legend {
+    display: none;
+    bottom: 52px;
+  }
+  .legend.open {
+    display: grid;
   }
 }
 

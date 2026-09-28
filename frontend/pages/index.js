@@ -75,6 +75,10 @@ export default function Home() {
   const [selected, setSelected] = useState(null);
   const [weights, setWeights] = useState(null);
   const [scene, setScene] = useState("normal");
+  // Mobile-only collapse state. On desktop the CSS shows the full banner and
+  // the legend unconditionally, so these have no effect there.
+  const [provOpen, setProvOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   // Call the existing POST /analyze with the scene in the body (existing API
   // contract — no new endpoint). Defaults to the current scene.
@@ -210,9 +214,31 @@ export default function Home() {
 
         {data?.data_source === "SYNTHETIC_FIXTURE" && (
           <div className="banner provenance" role="note">
-            <strong>Synthetic sample data.</strong>{" "}
-            {data.provenance_note ||
-              "Generated fixture — results demonstrate pipeline mechanics, not a real detection."}
+            {/* Compact line (shown on mobile only via CSS). */}
+            <span className="prov-compact">
+              <strong>Synthetic sample data</strong> — results demonstrate
+              pipeline mechanics, not a real detection
+            </span>
+            {/* Details toggle — mobile only via CSS; expands the full note. */}
+            <button
+              type="button"
+              className="prov-toggle"
+              aria-expanded={provOpen}
+              aria-controls="prov-full"
+              onClick={() => setProvOpen((v) => !v)}
+            >
+              {provOpen ? "Hide" : "Details"}
+            </button>
+            {/* Full disclaimer — always in the DOM; shown in full on desktop,
+                and on mobile only when expanded. Never removed. */}
+            <span
+              id="prov-full"
+              className={`prov-full${provOpen ? " open" : ""}`}
+            >
+              <strong>Synthetic sample data.</strong>{" "}
+              {data.provenance_note ||
+                "Generated fixture — results demonstrate pipeline mechanics, not a real detection."}
+            </span>
           </div>
         )}
 
@@ -242,7 +268,21 @@ export default function Home() {
                 the primary slick (not attributed this run).
               </div>
             )}
-            <ul className="legend">
+            {/* Legend toggle — mobile only via CSS (hidden on desktop). Keeps
+                the legend from permanently covering the small mobile map. */}
+            <button
+              type="button"
+              className="legend-toggle"
+              aria-expanded={legendOpen}
+              aria-controls="map-legend"
+              onClick={() => setLegendOpen((v) => !v)}
+            >
+              Legend {legendOpen ? "▴" : "▾"}
+            </button>
+            <ul
+              id="map-legend"
+              className={`legend${legendOpen ? " open" : ""}`}
+            >
               <li>
                 <span className="sw" style={{ background: "#e0a94a" }} />
                 Detected slick
