@@ -99,12 +99,20 @@ class ERA5WindSource(WindSource):
             t += timedelta(hours=1)
         return hours
 
+    # Pad the requested box so it always spans several ERA5 grid cells. ERA5 is
+    # on a 0.25 deg grid; a scene smaller than one cell (e.g. a single SAR tile)
+    # makes MARS fail with an empty-area-crop assertion. Padding guarantees at
+    # least one grid point; extraction still takes the point nearest the scene
+    # centre, so the result is unchanged for large scenes.
+    AREA_PAD_DEG = 0.5
+
     def _area(self, scene):
         b = scene.bounds
+        p = self.AREA_PAD_DEG
         # CDS area order is [North, West, South, East]; round to keep cache keys
         # and requests grid-stable.
-        return [round(b.max_lat, 2), round(b.min_lon, 2),
-                round(b.min_lat, 2), round(b.max_lon, 2)]
+        return [round(b.max_lat + p, 2), round(b.min_lon - p, 2),
+                round(b.min_lat - p, 2), round(b.max_lon + p, 2)]
 
     def _cache_key(self, area, hours, variables) -> str:
         payload = json.dumps({

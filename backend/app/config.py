@@ -100,7 +100,7 @@ SAMPLE_DATA_DIR = BACKEND_DIR / "sample_data"
 # The bundled demonstration scenes. Each is a self-contained fixture directory
 # under SAMPLE_DATA_DIR ("scene_<name>/") holding scene.tif, wind.json,
 # ships.json, and scene_meta.json.
-SCENE_NAMES = ("normal", "ambiguous", "calm")
+SCENE_NAMES = ("normal", "ambiguous", "calm", "real_skagerrak")
 DEFAULT_SCENE = "normal"
 
 

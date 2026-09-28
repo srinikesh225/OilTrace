@@ -1,0 +1,12 @@
+{
+  "scene_id": "S1C_IW_GRDH_20260914T053126_OCEAN01",
+  "acquired_at": "2026-09-14T05:31:26Z",
+  "bounds": {
+    "min_lat": 58.10199,
+    "min_lon": 10.292636,
+    "max_lat": 58.177807,
+    "max_lon": 10.520029
+  },
+  "provenance": "REAL Sentinel-1C OCEAN_01 tile; ships.json is SYNTHETIC.",
+  "geoloc_approx_rms_m": 3.1
+}

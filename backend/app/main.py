@@ -89,7 +89,7 @@ def _get_wind_source():
 class AnalyzeRequest(BaseModel):
     """Optional body for POST /analyze. Restricting `scene` to the known names
     (a Literal) both documents the choices and blocks any arbitrary path."""
-    scene: Literal["normal", "ambiguous", "calm"] = config.DEFAULT_SCENE
+    scene: Literal["normal", "ambiguous", "calm", "real_skagerrak"] = config.DEFAULT_SCENE
 
 
 def _load_json(path):
