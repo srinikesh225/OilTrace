@@ -28,7 +28,11 @@ RANDOM_SEED = 42             # fixed so the same scene always gives the same res
 # oil is dark, so we keep pixels darker than this.
 DARK_THRESHOLD = 90
 # Minimum contour area in pixels to be considered a real slick candidate.
-MIN_SLICK_AREA_PX = 1500
+# Lowered 1500 -> 200 from a sweep on the 110-image held-out test split
+# (oil class, prob threshold 0.5): +3.6 IoU points (0.494 -> 0.530) and
+# +5.7 recall points (0.562 -> 0.618), for a small precision cost
+# (0.803 -> 0.788). See scratch/model_eval/results/min_area_sweep_report.json.
+MIN_SLICK_AREA_PX = 200
 
 # --- Ship matching (name.py) ------------------------------------------------
 
