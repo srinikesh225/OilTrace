@@ -64,7 +64,8 @@ two blobs rejected by the detector's minimum-area rule.
 
 - Python **3.11+** (developed against 3.13; targets 3.11 in Docker)
 - Node **18+** for the frontend
-- No database, no GPU, no network at runtime
+- No database, no GPU; no network at runtime by default (the optional ERA5 wind
+  source, `WIND_SOURCE=era5`, does reach the Copernicus CDS API)
 
 ---
 
@@ -132,7 +133,7 @@ rejected detection with its reason.
 > network at runtime. Wiring in a self-hosted tile source is a later task.
 
 The backend URL defaults to `http://localhost:8000`; override with
-`NEXT_PUBLIC_API_BASE` when building.
+`NEXT_PUBLIC_API_URL` when building.
 
 ---
 
@@ -212,5 +213,8 @@ oiltrace/
 
 ## Not in scope for day one
 
-No U-Net, no external APIs, no database, no ocean currents. Those are the named
-replacements behind each `# PROTOTYPE:` marker.
+A pretrained ResNet50 DeepLabV3+ segmenter now ships behind the `Segmenter`
+interface (default: fixed threshold), and an optional ERA5 wind source ships
+behind the `WindSource` interface (default: bundled fixture). Still out of scope:
+a database, and ocean currents in the drift model — the named replacements behind
+the remaining `# PROTOTYPE:` markers.
